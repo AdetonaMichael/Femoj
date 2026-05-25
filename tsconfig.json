@@ -19,7 +19,36 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/components": ["./src/components"],
+      "@/components/*": ["./src/components/*"],
+      "@/ui": ["./src/components/ui"],
+      "@/ui/*": ["./src/components/ui/*"],
+      "@/types": ["./src/types"],
+      "@/types/*": ["./src/types/*"],
+      "@/schemas": ["./src/schemas"],
+      "@/schemas/*": ["./src/schemas/*"],
+      "@/constants": ["./src/constants"],
+      "@/constants/*": ["./src/constants/*"],
+      "@/lib": ["./src/lib"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/store": ["./src/store"],
+      "@/store/*": ["./src/store/*"],
+      "@/hooks": ["./src/hooks"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/services": ["./src/services"],
+      "@/services/*": ["./src/services/*"],
+      "@/utils": ["./src/utils"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/config": ["./src/config"],
+      "@/config/*": ["./src/config/*"],
+      "@/seo": ["./src/seo"],
+      "@/seo/*": ["./src/seo/*"],
+      "@/contexts": ["./src/contexts"],
+      "@/contexts/*": ["./src/contexts/*"],
+      "@/animations": ["./src/animations"],
+      "@/animations/*": ["./src/animations/*"],
+      "@/mock": ["./src/mock"],
+      "@/mock/*": ["./src/mock/*"]
     }
   },
   "include": [

@@ -1,0 +1,14 @@
+export {default as logo1} from "./logo1.png";
+export {default as upwork} from "./upwork.png";
+export {default as fiverr} from "./fiverr.png";
+export {default as linkedin} from "./linkedin.png";
+export {default as meta} from "./meta.png";
+export {default as whatsapp} from "./whatsapp.png";
+export {default as google} from "./google.png";
+export {default as shopify} from "./shopify.png";
+export {default as airbnb} from "./airbnb.png";
+export {default as discord} from "./discord.png";
+export {default as uber} from "./uber.png";
+export {default as telegram} from "./telegram.png";
+export {default as snapchat} from "./snapchat.png";
+export {default as payoneer} from "./payoneer.png";
