@@ -1,227 +1,176 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, MailCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { verifyEmailSchema, type VerifyEmailSchema } from "@/schemas";
+import { useVerifyEmail, useResendEmailOTP } from "@/hooks/useAuth";
+import { useAuthStore } from "@/store/auth";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { logo1 } from "../../../public";
 
-const CODE_LENGTH = 6;
+const inputClass =
+  "w-full h-[44px] pl-10 pr-4 rounded-[10px] border-[1.5px] border-[#e5e7eb] bg-[#f8f9fb] text-[13.5px] text-[#6b7280] placeholder:text-[#b0b8c8] outline-none transition-all hover:border-[#c5cad6] focus:border-[#1a3fd4] focus:bg-[#f4f6fd] focus:ring-[3px] focus:ring-[#1a3fd4]/10 focus:text-[#374151]";
+const labelClass = "block text-[12.5px] font-medium text-[#374151] mb-1.5";
+const errorClass = "text-xs text-red-500 mt-1.5 flex items-center gap-1";
 
 export default function VerifyEmailPage() {
-  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const router = useRouter();
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
+  const { verifyEmail: performVerifyEmail } = useVerifyEmail();
+  const { resend: performResendOTP } = useResendEmailOTP();
+  const { registrationEmail, user, isLoading } = useAuthStore();
 
-  /* countdown timer for resend */
+  // Get email from either registration flow or logged-in user
+  const emailToVerify = registrationEmail || user?.email;
+
+  // Redirect if no email is available
   useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
-
-  const focusInput = (index: number) => {
-    inputRefs.current[index]?.focus();
-  };
-
-  const handleChange = (index: number, value: string) => {
-    /* allow only single digit */
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const next = [...code];
-    next[index] = digit;
-    setCode(next);
-    if (digit && index < CODE_LENGTH - 1) focusInput(index + 1);
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (code[index]) {
-        const next = [...code];
-        next[index] = "";
-        setCode(next);
-      } else if (index > 0) {
-        focusInput(index - 1);
-      }
+    if (!emailToVerify) {
+      router.replace("/auth/login");
     }
-    if (e.key === "ArrowLeft" && index > 0) focusInput(index - 1);
-    if (e.key === "ArrowRight" && index < CODE_LENGTH - 1) focusInput(index + 1);
-  };
+  }, [emailToVerify, router]);
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, CODE_LENGTH);
-    const next = Array(CODE_LENGTH).fill("");
-    pasted.split("").forEach((ch, i) => { next[i] = ch; });
-    setCode(next);
-    /* focus last filled or next empty */
-    const lastIdx = Math.min(pasted.length, CODE_LENGTH - 1);
-    focusInput(lastIdx);
-  };
-
-  const handleVerify = async () => {
-    const entered = code.join("");
-    if (entered.length < CODE_LENGTH) {
-      toast.error("Please enter the full 6-digit code.");
-      return;
+  // Handle OTP resend timer
+  useEffect(() => {
+    if (otpResendTimer > 0) {
+      const timer = setTimeout(() => setOtpResendTimer(otpResendTimer - 1), 1000);
+      return () => clearTimeout(timer);
     }
-    setIsVerifying(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      toast.success("Email verified successfully!");
-      window.location.href = "/dashboard";
-    } catch {
-      toast.error("Verification failed. Please try again.");
-    } finally {
-      setIsVerifying(false);
+  }, [otpResendTimer]);
+
+  const form = useForm<VerifyEmailSchema>({
+    resolver: zodResolver(verifyEmailSchema),
+    defaultValues: { email: emailToVerify || "", otp: "" },
+    mode: "onChange",
+  });
+
+  const handleResendOTP = async () => {
+    const result = await performResendOTP({
+      email: emailToVerify || "",
+    });
+    if (result.success && result.data) {
+      setOtpResendTimer(60);
+      toast.success("OTP resent successfully!");
     }
   };
 
-  const handleResend = async () => {
-    if (resendCooldown > 0) return;
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      toast.success("A new code has been sent to your email.");
-      setCode(Array(CODE_LENGTH).fill(""));
-      focusInput(0);
-      setResendCooldown(60);
-    } catch {
-      toast.error("Failed to resend code. Please try again.");
+  const onSubmit = async (data: VerifyEmailSchema) => {
+    const result = await performVerifyEmail(data);
+    if (result.success) {
+      toast.success("Email verified!");
+      
+      // If user came from login flow (has user but registrationEmail not set), go to dashboard
+      // If user came from registration flow, go to login to login again
+      setTimeout(() => {
+        if (user && !registrationEmail) {
+          // User was already logged in
+          router.push("/dashboard");
+        } else {
+          // User was registering
+          router.push("/auth/login");
+        }
+      }, 1500);
     }
   };
-
-  const isFilled = code.every((d) => d !== "");
 
   return (
-    <div className="min-h-screen bg-[#f0f2f8] flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-[#f0f2f8] to-[#e8ebf5] flex items-center justify-center px-4 py-10">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="w-full max-w-[420px] bg-white rounded-2xl border border-[#dde0ea] px-10 py-11"
+        className="w-full max-w-[420px] bg-white rounded-2xl border border-[#dde0ea] px-10 py-11 shadow-lg"
       >
-        {/* Logo & heading */}
-        <div className="flex flex-col items-center mb-9">
-          <Image src={logo1} alt="Femoj Logo" width={80} height={80} />
-          <h1 className="text-xl font-medium text-[#111827] mb-1.5">Verify your email</h1>
-          <p className="text-sm text-[#6b7280] text-center leading-relaxed">
-            We sent a 6-digit code to your email address.
-            <br />Enter it below to continue.
-          </p>
-          <div className="w-7 h-[2.5px] bg-[#1a3fd4] rounded-full mt-4" />
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src={logo1}
+            alt="Femoj Logo"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-auto"
+          />
         </div>
 
-        {/* OTP inputs */}
-        <div className="flex gap-2.5 justify-center mb-6" onPaste={handlePaste}>
-          {code.map((digit, i) => (
-            <motion.input
-              key={i}
-              ref={(el) => { inputRefs.current[i] = el; }}
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <CheckCircle2 className="w-12 h-12 text-[#059669]" />
+          </div>
+          <h1 className="text-[24px] font-bold text-[#1f2937] mb-2">
+            Verify Your Email
+          </h1>
+          <p className="text-[13.5px] text-[#6b7280]">
+            We sent a 6-digit code to your email address
+          </p>
+        </div>
+
+        {/* Info Card */}
+        <div className="bg-[#f0f9ff] border border-[#bfdbfe] rounded-lg p-3.5 mb-6">
+          <p className="text-[13px] text-[#0c4a6e]">
+            <strong>{emailToVerify}</strong>
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          {/* OTP Field */}
+          <div>
+            <label htmlFor="otp" className={labelClass}>
+              Verification Code
+            </label>
+            <input
+              id="otp"
               type="text"
               inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              autoFocus={i === 0}
-              onChange={(e) => handleChange(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.2 }}
-              className="
-                w-[46px] h-[52px]
-                rounded-[10px] border-[1.5px] border-[#e5e7eb]
-                bg-[#f8f9fb]
-                text-center text-[20px] font-semibold text-[#111827]
-                outline-none transition-all
-                hover:border-[#c5cad6]
-                focus:border-[#1a3fd4] focus:bg-[#f4f6fd]
-                focus:ring-[3px] focus:ring-[#1a3fd4]/10
-                caret-transparent
-                select-none
-              "
-              style={{
-                /* highlight filled digits */
-                borderColor: digit ? "#1a3fd4" : undefined,
-                background: digit ? "#f4f6fd" : undefined,
-              }}
+              placeholder="000000"
+              maxLength={6}
+              className={
+                inputClass + " text-center tracking-widest font-mono text-lg pl-4"
+              }
+              {...form.register("otp")}
             />
-          ))}
-        </div>
+            {form.formState.errors.otp && (
+              <div className={errorClass}>
+                <AlertCircle className="w-3.5 h-3.5" />
+                {form.formState.errors.otp.message}
+              </div>
+            )}
+          </div>
 
-        {/* Info hint */}
-        <div className="rounded-[10px] bg-[#f4f6fd] border border-[#dde0ea] px-4 py-3 mb-6 flex items-start gap-2.5">
-          <MailCheck className="w-4 h-4 text-[#1a3fd4] mt-0.5 shrink-0" />
-          <p className="text-[12.5px] text-[#6b7280] leading-relaxed">
-            The code expires in <span className="font-medium text-[#374151]">10 minutes</span>. Check your spam folder if you don't see it.
+          {/* Submit Button */}
+          <motion.button
+            type="submit"
+            disabled={
+              form.watch("otp").length !== 6 || isLoading
+            }
+            whileHover={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
+            className="w-full h-11 mt-8 bg-[#1a3fd4] hover:bg-[#1631b6] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-[13.5px] rounded-[10px] transition-all duration-200"
+          >
+            {isLoading ? "Verifying..." : "Verify Email"}
+          </motion.button>
+        </form>
+
+        {/* Resend Link */}
+        <div className="mt-8 text-center border-t border-[#e5e7eb] pt-6">
+          <p className="text-[13.5px] text-[#6b7280] mb-3">
+            Didn&apos;t receive the code?
           </p>
-        </div>
-
-        {/* Verify button */}
-        <button
-          type="button"
-          onClick={handleVerify}
-          disabled={isVerifying || !isFilled}
-          className="
-            w-full h-[46px]
-            rounded-[10px] bg-[#1a3fd4] hover:bg-[#1533b5]
-            active:scale-[0.99] text-white text-[14.5px] font-medium
-            tracking-[0.15px] transition-all
-            flex items-center justify-center gap-2
-            disabled:opacity-60 disabled:cursor-not-allowed
-            mb-5
-          "
-        >
-          {isVerifying ? (
-            <>
-              <svg
-                className="w-4 h-4 animate-spin"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-              </svg>
-              Verifying…
-            </>
-          ) : (
-            "Verify email"
-          )}
-        </button>
-
-        {/* Resend */}
-        <p className="text-center text-sm text-[#6b7280]">
-          Didn't receive a code?{" "}
           <button
             type="button"
-            onClick={handleResend}
-            disabled={resendCooldown > 0}
-            className="
-              font-medium transition-colors
-              disabled:text-[#9ca3af] disabled:cursor-not-allowed
-              text-[#1a3fd4] hover:underline
-            "
+            onClick={handleResendOTP}
+            disabled={otpResendTimer > 0 || isLoading}
+            className="text-[13.5px] text-[#1a3fd4] hover:text-[#1631b6] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend"}
+            {otpResendTimer > 0 ? `Resend in ${otpResendTimer}s` : "Resend OTP"}
           </button>
-        </p>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <hr className="flex-1 border-[#f3f4f6]" />
-        </div>
-
-        {/* Back to login */}
-        <div className="flex justify-center">
-          <Link
-            href="/auth/login"
-            className="flex items-center gap-1.5 text-sm text-[#6b7280] hover:text-[#1a3fd4] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to sign in
-          </Link>
         </div>
       </motion.div>
     </div>

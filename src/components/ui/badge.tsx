@@ -4,18 +4,27 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/utils";
 
+/* ─── Variants ────────────────────────────────────────────────────────────── */
 const badgeVariants = cva(
-  "badge-base",
+  // Base: inline chip — no rounded-full, no bold, tight padding
+  "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium leading-none select-none",
   {
     variants: {
       variant: {
-        default: "bg-primary/10 text-primary",
-        secondary: "bg-secondary/10 text-secondary",
-        success: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        danger: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-        warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-        info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-        outline: "border border-input bg-background text-foreground",
+        default:
+          "bg-[#e8f0fe] text-[#1a73e8]",
+        secondary:
+          "bg-[#f1f3f4] text-[#5f6368]",
+        success:
+          "bg-[#e6f4ea] text-[#137333]",
+        danger:
+          "bg-[#fce8e6] text-[#c5221f]",
+        warning:
+          "bg-[#fef7e0] text-[#b06000]",
+        info:
+          "bg-[#e8f0fe] text-[#1a73e8]",
+        outline:
+          "border border-[#dadce0] bg-transparent text-[#5f6368]",
       },
     },
     defaultVariants: {
@@ -24,13 +33,18 @@ const badgeVariants = cva(
   }
 );
 
+/* ─── Props ───────────────────────────────────────────────────────────────── */
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
+/* ─── Component ───────────────────────────────────────────────────────────── */
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <span
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
   );
 }
 

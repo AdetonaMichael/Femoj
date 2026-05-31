@@ -194,7 +194,7 @@ export default function NumbersPage() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-7xl mx-auto w-full">
+          <div className="p-4 md:p-6 mx-auto w-full">
             <motion.div
               className="space-y-8"
               variants={staggerContainer}

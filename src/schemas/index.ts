@@ -1,69 +1,167 @@
 import { z } from "zod";
 
+/**
+ * Password validation helper
+ * Backend requirements: min 8 chars with uppercase, lowercase, numbers, symbols
+ */
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character (!@#$%^&*)");
+
+/**
+ * Nigerian phone number validation
+ * Format: +234XXXXXXXXXX or 0XXXXXXXXXX
+ */
+const nigerianPhoneSchema = z
+  .string()
+  .refine(
+    (phone) => {
+      const pattern = /^(\+234|0)[789]\d{9}$/;
+      return pattern.test(phone.replace(/[\s-]/g, ""));
+    },
+    "Invalid Nigerian phone number. Use +234XXXXXXXXXX or 0XXXXXXXXXX format"
+  );
+
+// ==============
 // Auth Schemas
+// ==============
+
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
-export const signupStep1Schema = z.object({
-  firstName: z
+export type LoginSchema = z.infer<typeof loginSchema>;
+
+/**
+ * Register Step 1: Basic Information
+ */
+export const registerStep1Schema = z.object({
+  first_name: z
     .string()
     .min(2, "First name must be at least 2 characters")
-    .max(50, "First name must be less than 50 characters"),
-  lastName: z
+    .max(255, "First name must be less than 255 characters"),
+  last_name: z
     .string()
     .min(2, "Last name must be at least 2 characters")
-    .max(50, "Last name must be less than 50 characters"),
+    .max(255, "Last name must be less than 255 characters"),
 });
 
-export const signupStep2Schema = z.object({
+export type RegisterStep1Schema = z.infer<typeof registerStep1Schema>;
+
+/**
+ * Register Step 2: Contact Information
+ */
+export const registerStep2Schema = z.object({
+  email: z.string().email("Invalid email address").toLowerCase(),
+  phone_number: nigerianPhoneSchema,
+});
+
+export type RegisterStep2Schema = z.infer<typeof registerStep2Schema>;
+
+/**
+ * Register Step 3: Password & Referral
+ */
+export const registerStep3Schema = z
+  .object({
+    password: passwordSchema,
+    password_confirmation: z.string(),
+    ref: z.string().optional(),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    message: "Passwords don't match",
+    path: ["password_confirmation"],
+  });
+
+export type RegisterStep3Schema = z.infer<typeof registerStep3Schema>;
+
+/**
+ * Register Step 4: Email Verification OTP
+ */
+export const registerStep4Schema = z.object({
+  otp: z.string().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
+});
+
+export type RegisterStep4Schema = z.infer<typeof registerStep4Schema>;
+
+/**
+ * Email verification
+ */
+export const verifyEmailSchema = z.object({
   email: z.string().email("Invalid email address"),
-  phone: z
-    .string()
-    .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
-  country: z.string().min(1, "Please select a country"),
+  otp: z.string().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
 
-export const signupStep3Schema = z.object({
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(
-      /[^A-Za-z0-9]/,
-      "Password must contain at least one special character"
-    ),
-  confirmPassword: z.string(),
-  referralCode: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+export type VerifyEmailSchema = z.infer<typeof verifyEmailSchema>;
+
+/**
+ * Resend email OTP
+ */
+export const resendEmailOTPSchema = z.object({
+  email: z.string().email("Invalid email address"),
 });
 
-export const signupStep4Schema = z.object({
-  otp: z.string().regex(/^\d{6}$/, "OTP must be 6 digits"),
-});
+export type ResendEmailOTPSchema = z.infer<typeof resendEmailOTPSchema>;
 
+/**
+ * Forgot Password
+ */
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
-export const resetPasswordSchema = z.object({
-  token: z.string(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+
+/**
+ * Verify Password Reset OTP
+ */
+export const verifyPasswordResetOTPSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  otp: z.string().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
+
+export type VerifyPasswordResetOTPSchema = z.infer<typeof verifyPasswordResetOTPSchema>;
+
+/**
+ * Reset Password
+ */
+export const resetPasswordSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    reset_token: z.string().min(1, "Reset token is required"),
+    password: passwordSchema,
+    password_confirmation: z.string(),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    message: "Passwords don't match",
+    path: ["password_confirmation"],
+  });
+
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Send Phone Verification OTP
+ */
+export const sendPhoneOTPSchema = z.object({
+  phone_number: nigerianPhoneSchema.optional(),
+  method: z.enum(["sms", "call"]).default("sms"),
+});
+
+export type SendPhoneOTPSchema = z.infer<typeof sendPhoneOTPSchema>;
+
+/**
+ * Verify Phone with OTP
+ */
+export const verifyPhoneSchema = z.object({
+  verification_id: z.number(),
+  otp: z.string().regex(/^\d{5,6}$/, "OTP must be 5-6 digits"),
+});
+
+export type VerifyPhoneSchema = z.infer<typeof verifyPhoneSchema>;
 
 // Number Search Schema
 export const numberSearchSchema = z.object({

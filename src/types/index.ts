@@ -1,50 +1,186 @@
-// User Types
+/**
+ * User & Auth Types
+ */
 export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
+  id: number;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
-  country: string;
-  avatar?: string;
-  role: "user" | "admin";
-  status: "active" | "suspended" | "banned";
-  kycStatus: "pending" | "verified" | "rejected";
-  createdAt: Date;
-  updatedAt: Date;
+  phone_number: string;
+  email_verified_at: string | null;
+  phone_verified_at: string | null;
+  balance?: number;
+  account_type?: "individual" | "business";
+  referral_code?: string;
+  referral_count?: number;
+  total_referral_earnings?: number;
+  pin_status?: {
+    is_set: boolean;
+    created_at: string | null;
+    updated_at: string | null;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthUser extends User {
-  accessToken: string;
-  refreshToken: string;
+  access_token: string;
+  token_type: "Bearer";
+  email_verification_sent?: boolean;
 }
 
-// Authentication Types
-export interface LoginPayload {
+export interface PinStatus {
+  is_set: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// Authentication Request/Response Types
+export interface RegisterRequest {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  password: string;
+  password_confirmation: string;
+  ref?: string;
+}
+
+export interface RegisterResponse {
+  user: User;
+  token: string;  // API actually returns 'token', not 'access_token'
+  access_token?: string;  // Optional for backward compatibility
+  token_type?: "Bearer";
+  email_verification_sent?: boolean;
+}
+
+export interface LoginRequest {
   email: string;
   password: string;
+  location?: {
+    lat: number;
+    lng: number;
+    accuracy?: number;
+  };
 }
 
-export interface SignupPayload {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  country: string;
-  password: string;
-  confirmPassword: string;
-  referralCode?: string;
+export interface LoginResponse {
+  user: User;
+  token: string;  // API actually returns 'token', not 'access_token'
+  access_token?: string;  // Optional for backward compatibility
+  token_type?: "Bearer";
+  pin_status: PinStatus;
+  location_tracked?: boolean;
+  tracked_at?: string;
 }
 
-export interface OTPVerification {
+export interface VerifyEmailRequest {
   email: string;
   otp: string;
 }
 
-export interface ResetPasswordPayload {
-  token: string;
+export interface VerifyEmailResponse {
+  email_verified: boolean;
+  verified_at: string;
+}
+
+export interface ResendEmailOTPRequest {
+  email: string;
+}
+
+export interface ResendEmailOTPResponse {
+  otp_sent: boolean;
+  expires_in: number;
+  expires_at: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  reset_sent: boolean;
+  expires_in: number;
+  expires_at: string;
+}
+
+export interface VerifyPasswordResetOTPRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyPasswordResetOTPResponse {
+  reset_token: string;
+  verified: boolean;
+  valid_until: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  reset_token: string;
   password: string;
-  confirmPassword: string;
+  password_confirmation: string;
+}
+
+export interface ResetPasswordResponse {
+  password_reset: boolean;
+  reset_at: string;
+  sessions_revoked: boolean;
+}
+
+export interface VerifyTokenRequest {
+  // No request body, uses Authorization header
+}
+
+export interface VerifyTokenResponse {
+  valid: boolean;
+  user_id: number;
+  email: string;
+  expires_at: string;
+}
+
+export interface SendPhoneOTPRequest {
+  phone_number?: string;
+  method?: "sms" | "call";
+}
+
+export interface SendPhoneOTPResponse {
+  verification_id: number;
+  phone_number: string;
+  method: "sms" | "call";
+  sent_at: string;
+  expires_in: number;
+  expires_at: string;
+}
+
+export interface VerifyPhoneRequest {
+  verification_id: number;
+  otp: string;
+}
+
+export interface VerifyPhoneResponse {
+  phone_verified: boolean;
+  verified_at: string;
+  phone_number: string;
+}
+
+export interface LogoutResponse {
+  logged_out: boolean;
+  logged_out_at: string;
+}
+
+// Generic API Response
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data?: T;
+  errors?: Record<string, string[]>;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  errors: Record<string, string[]>;
 }
 
 // Virtual Number Types

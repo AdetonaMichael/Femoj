@@ -87,12 +87,12 @@ export default function AdminPage() {
         <div className="p-4 border-t border-border space-y-3">
           <div className="flex items-center gap-3 px-4 py-2">
             <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-              {user?.firstName.charAt(0)}
-              {user?.lastName.charAt(0)}
+              {user?.first_name.charAt(0)}
+              {user?.last_name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">
-                {user?.firstName} {user?.lastName}
+                {user?.first_name} {user?.last_name}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 Admin
@@ -154,7 +154,7 @@ export default function AdminPage() {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-7xl mx-auto w-full">
+          <div className="p-4 md:p-6  mx-auto w-full">
             <motion.div
               className="space-y-8"
               variants={staggerContainer}

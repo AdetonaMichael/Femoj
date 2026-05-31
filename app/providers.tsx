@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { AuthInitializer } from "./auth-initializer";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
+        <AuthInitializer />
         {children}
         <Toaster
           position="top-right"

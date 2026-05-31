@@ -1,328 +1,242 @@
-import { sleep } from "@/utils";
+/**
+ * Authentication & API Services
+ * Handles all API communication with proper error handling and type safety
+ */
+
+import { apiPost, apiGet } from "@/lib/api-client";
+import {
+  setAccessToken,
+  clearAllTokens,
+  setVerificationToken,
+  getVerificationToken,
+} from "@/lib/token";
 import type {
+  ApiResponse,
+  RegisterRequest,
+  RegisterResponse,
+  LoginRequest,
+  LoginResponse,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
+  ResendEmailOTPRequest,
+  ResendEmailOTPResponse,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  VerifyPasswordResetOTPRequest,
+  VerifyPasswordResetOTPResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  VerifyTokenResponse,
+  SendPhoneOTPRequest,
+  SendPhoneOTPResponse,
+  VerifyPhoneRequest,
+  VerifyPhoneResponse,
+  LogoutResponse,
   User,
   AuthUser,
-  LoginPayload,
-  SignupPayload,
-  VirtualNumber,
-  SMSMessage,
-  Transaction,
-  Wallet,
-  ApiResponse,
-  PaginatedResponse,
-  DashboardStats,
-  ReferralStats,
 } from "@/types";
-import {
-  MOCK_USERS,
-  MOCK_NUMBERS,
-  MOCK_WALLET,
-  MOCK_TRANSACTIONS,
-  MOCK_DASHBOARD_STATS,
-  MOCK_REFERRAL_STATS,
-  MOCK_SMS_CONVERSATIONS,
-  MOCK_SMS_MESSAGES,
-} from "@/mock/data";
-
-// Simulate API delay
-const API_DELAY = 500; // ms
 
 /**
- * Auth Service
+ * Auth Service - Public Endpoints
  */
 export const authService = {
-  async login(payload: LoginPayload): Promise<ApiResponse<AuthUser>> {
-    await sleep(API_DELAY);
-    // Mock validation
-    if (payload.email === "demo@femoj.com" && payload.password === "Demo@1234") {
-      const user = MOCK_USERS[0];
-      return {
-        success: true,
-        data: {
-          ...user,
-          accessToken: "mock_access_token_" + Date.now(),
-          refreshToken: "mock_refresh_token_" + Date.now(),
-        } as AuthUser,
-      };
-    }
-    return {
-      success: false,
-      error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" },
-    };
+  /**
+   * Register a new user
+   * POST /auth/register
+   */
+  async register(
+    payload: RegisterRequest
+  ): Promise<ApiResponse<RegisterResponse>> {
+    return apiPost<RegisterResponse, RegisterRequest>("/auth/register", payload);
   },
 
-  async signup(payload: SignupPayload): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    // Mock validation
-    if (payload.email.includes("@")) {
-      return {
-        success: true,
-        data: { message: "Account created successfully" },
-      };
+  /**
+   * Login user
+   * POST /auth/login
+   */
+  async login(payload: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+    const response = await apiPost<LoginResponse, LoginRequest>(
+      "/auth/login",
+      payload
+    );
+
+    console.log("[authService.login] API Response received:", {
+      success: response.success,
+      hasToken: !!response.data?.token,
+    });
+
+    // Store token on successful login
+    if (response.success && response.data?.token) {
+      console.log("[authService.login] Storing token from API response");
+      setAccessToken(response.data.token);
+    } else if (response.success) {
+      console.warn("[authService.login] Login succeeded but no token in response");
     }
-    return {
-      success: false,
-      error: { code: "INVALID_EMAIL", message: "Invalid email format" },
-    };
+
+    return response;
   },
 
+  /**
+   * Verify email with OTP
+   * POST /auth/verify-email-with-otp
+   */
   async verifyEmail(
-    email: string,
-    otp: string
-  ): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    if (otp === "123456") {
-      return {
-        success: true,
-        data: { message: "Email verified successfully" },
-      };
+    payload: VerifyEmailRequest
+  ): Promise<ApiResponse<VerifyEmailResponse>> {
+    return apiPost<VerifyEmailResponse, VerifyEmailRequest>(
+      "/auth/verify-email-with-otp",
+      payload
+    );
+  },
+
+  /**
+   * Resend email verification OTP
+   * POST /auth/resend-email-verification-otp
+   */
+  async resendEmailOTP(
+    payload: ResendEmailOTPRequest
+  ): Promise<ApiResponse<ResendEmailOTPResponse>> {
+    return apiPost<ResendEmailOTPResponse, ResendEmailOTPRequest>(
+      "/auth/resend-email-verification-otp",
+      payload
+    );
+  },
+
+  /**
+   * Request password reset
+   * POST /auth/forgot-password
+   */
+  async forgotPassword(
+    payload: ForgotPasswordRequest
+  ): Promise<ApiResponse<ForgotPasswordResponse>> {
+    return apiPost<ForgotPasswordResponse, ForgotPasswordRequest>(
+      "/auth/forgot-password",
+      payload
+    );
+  },
+
+  /**
+   * Verify password reset OTP
+   * POST /auth/verify-password-reset-otp
+   */
+  async verifyPasswordResetOTP(
+    payload: VerifyPasswordResetOTPRequest
+  ): Promise<ApiResponse<VerifyPasswordResetOTPResponse>> {
+    const response = await apiPost<
+      VerifyPasswordResetOTPResponse,
+      VerifyPasswordResetOTPRequest
+    >("/auth/verify-password-reset-otp", payload);
+
+    // Store reset token for password reset step
+    if (response.success && response.data?.reset_token) {
+      setVerificationToken(response.data.reset_token);
     }
-    return {
-      success: false,
-      error: { code: "INVALID_OTP", message: "Invalid OTP" },
-    };
+
+    return response;
   },
 
-  async resendOTP(email: string): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { message: "OTP sent to your email" },
-    };
-  },
+  /**
+   * Reset password with verified OTP
+   * POST /auth/reset-password
+   */
+  async resetPassword(
+    payload: ResetPasswordRequest
+  ): Promise<ApiResponse<ResetPasswordResponse>> {
+    const response = await apiPost<
+      ResetPasswordResponse,
+      ResetPasswordRequest
+    >("/auth/reset-password", payload);
 
-  async forgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { message: "Reset link sent to your email" },
-    };
-  },
-};
-
-/**
- * Numbers Service
- */
-export const numbersService = {
-  async searchNumbers(
-    filters?: any
-  ): Promise<ApiResponse<PaginatedResponse<VirtualNumber>>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: {
-        items: MOCK_NUMBERS,
-        total: MOCK_NUMBERS.length,
-        page: 1,
-        limit: 20,
-        hasMore: false,
-      },
-    };
-  },
-
-  async getMyNumbers(): Promise<ApiResponse<VirtualNumber[]>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_NUMBERS,
-    };
-  },
-
-  async purchaseNumber(numberId: string): Promise<ApiResponse<VirtualNumber>> {
-    await sleep(API_DELAY);
-    const number = MOCK_NUMBERS.find((n) => n.id === numberId);
-    if (number) {
-      return { success: true, data: number };
+    // Clear verification token after successful reset
+    if (response.success) {
+      clearAllTokens();
     }
-    return {
-      success: false,
-      error: { code: "NOT_FOUND", message: "Number not found" },
-    };
+
+    return response;
   },
 
-  async renewNumber(numberId: string): Promise<ApiResponse<VirtualNumber>> {
-    await sleep(API_DELAY);
-    const number = MOCK_NUMBERS.find((n) => n.id === numberId);
-    if (number) {
-      return { success: true, data: { ...number, expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) } };
+  /**
+   * Get current authenticated user
+   * GET /auth/user
+   * Requires: Authorization header with Bearer token
+   */
+  async getCurrentUser(): Promise<ApiResponse<User>> {
+    return apiGet<User>("/auth/user", { requiresAuth: true });
+  },
+
+  /**
+   * Verify token validity
+   * GET /auth/verify
+   * Requires: Authorization header with Bearer token
+   */
+  async verifyToken(): Promise<ApiResponse<VerifyTokenResponse>> {
+    return apiGet<VerifyTokenResponse>("/auth/verify", { requiresAuth: true });
+  },
+
+  /**
+   * Send phone verification OTP
+   * POST /auth/send-phone-verification-otp
+   * Requires: Authorization header with Bearer token
+   */
+  async sendPhoneOTP(
+    payload: SendPhoneOTPRequest
+  ): Promise<ApiResponse<SendPhoneOTPResponse>> {
+    return apiPost<SendPhoneOTPResponse, SendPhoneOTPRequest>(
+      "/auth/send-phone-verification-otp",
+      payload,
+      { requiresAuth: true }
+    );
+  },
+
+  /**
+   * Verify phone with OTP
+   * POST /auth/verify-phone-with-otp
+   * Requires: Authorization header with Bearer token
+   */
+  async verifyPhone(
+    payload: VerifyPhoneRequest
+  ): Promise<ApiResponse<VerifyPhoneResponse>> {
+    return apiPost<VerifyPhoneResponse, VerifyPhoneRequest>(
+      "/auth/verify-phone-with-otp",
+      payload,
+      { requiresAuth: true }
+    );
+  },
+
+  /**
+   * Logout user
+   * POST /auth/logout
+   * Requires: Authorization header with Bearer token
+   */
+  async logout(): Promise<ApiResponse<LogoutResponse>> {
+    const response = await apiPost<LogoutResponse>("/auth/logout", {}, {
+      requiresAuth: true,
+    });
+
+    // Clear tokens on successful logout
+    if (response.success) {
+      clearAllTokens();
     }
-    return {
-      success: false,
-      error: { code: "NOT_FOUND", message: "Number not found" },
-    };
+
+    return response;
   },
 };
 
 /**
- * SMS Service
- */
-export const smsService = {
-  async getConversations(): Promise<ApiResponse<PaginatedResponse<any>>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: {
-        items: MOCK_SMS_CONVERSATIONS,
-        total: MOCK_SMS_CONVERSATIONS.length,
-        page: 1,
-        limit: 50,
-        hasMore: false,
-      },
-    };
-  },
-
-  async getMessages(conversationId: string): Promise<ApiResponse<SMSMessage[]>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_SMS_MESSAGES,
-    };
-  },
-
-  async sendSMS(payload: {
-    to: string;
-    from: string;
-    content: string;
-  }): Promise<ApiResponse<SMSMessage>> {
-    await sleep(API_DELAY);
-    const newMessage: SMSMessage = {
-      id: "sms_" + Date.now(),
-      from: payload.from,
-      to: payload.to,
-      content: payload.content,
-      status: "pending",
-      direction: "outbound",
-      virtualNumberId: "num_1",
-      conversationId: "conv_" + Date.now(),
-      createdAt: new Date(),
-    };
-    return {
-      success: true,
-      data: newMessage,
-    };
-  },
-};
-
-/**
- * Wallet Service
- */
-export const walletService = {
-  async getWallet(): Promise<ApiResponse<Wallet>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_WALLET,
-    };
-  },
-
-  async getTransactions(): Promise<
-    ApiResponse<PaginatedResponse<Transaction>>
-  > {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: {
-        items: MOCK_TRANSACTIONS,
-        total: MOCK_TRANSACTIONS.length,
-        page: 1,
-        limit: 50,
-        hasMore: false,
-      },
-    };
-  },
-
-  async fundWallet(payload: {
-    amount: number;
-    paymentMethod: string;
-  }): Promise<ApiResponse<{ message: string; reference: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: {
-        message: "Wallet funding initiated",
-        reference: "PAY_" + Date.now(),
-      },
-    };
-  },
-
-  async withdraw(payload: {
-    amount: number;
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-  }): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { message: "Withdrawal request submitted" },
-    };
-  },
-};
-
-/**
- * Dashboard Service
+ * Additional API Services - Placeholders for future implementation
  */
 export const dashboardService = {
-  async getStats(): Promise<ApiResponse<DashboardStats>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_DASHBOARD_STATS,
-    };
-  },
+  // Dashboard API calls will be added here
 };
 
-/**
- * Referral Service
- */
-export const referralService = {
-  async getStats(): Promise<ApiResponse<ReferralStats>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_REFERRAL_STATS,
-    };
-  },
-
-  async getReferralLink(): Promise<ApiResponse<{ link: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { link: "https://femoj.com/ref/abc123xyz" },
-    };
-  },
+export const numbersService = {
+  // Numbers/Virtual Numbers API calls will be added here
 };
 
-/**
- * User Service
- */
-export const userService = {
-  async getProfile(): Promise<ApiResponse<User>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: MOCK_USERS[0],
-    };
-  },
+export const smsService = {
+  // SMS API calls will be added here
+};
 
-  async updateProfile(
-    userData: Partial<User>
-  ): Promise<ApiResponse<User>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { ...MOCK_USERS[0], ...userData },
-    };
-  },
-
-  async changePassword(payload: {
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<ApiResponse<{ message: string }>> {
-    await sleep(API_DELAY);
-    return {
-      success: true,
-      data: { message: "Password changed successfully" },
-    };
-  },
+export const walletService = {
+  // Wallet API calls will be added here
 };
