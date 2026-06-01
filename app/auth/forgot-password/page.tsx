@@ -24,6 +24,7 @@ export default function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { forgotPassword: performForgotPassword } = useForgotPassword();
   const { isLoading, resetPasswordEmail } = useAuthStore();
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   const form = useForm<ForgotPasswordSchema>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -34,7 +35,13 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordSchema) => {
     const result = await performForgotPassword(data);
     if (result.success) {
+      setSubmittedEmail(data.email);
       setIsSubmitted(true);
+      
+      // Redirect to reset password page after 2 seconds
+      setTimeout(() => {
+        router.push(`/auth/reset-password?email=${encodeURIComponent(data.email)}`);
+      }, 2000);
     } else if (result.errors) {
       const firstError = Object.values(result.errors)[0]?.[0];
       toast.error(firstError || "Failed to send reset link");
@@ -154,30 +161,37 @@ export default function ForgotPasswordPage() {
                 Check Your Email
               </h1>
               <p className="text-[13.5px] text-[#6b7280] mb-6">
-                We sent a password reset link to{" "}
-                <strong>{resetPasswordEmail || form.getValues("email")}</strong>
+                We sent a password reset code to{" "}
+                <strong>{submittedEmail || resetPasswordEmail || form.getValues("email")}</strong>
               </p>
 
               {/* Instructions */}
               <div className="bg-[#f0f9ff] border border-[#bfdbfe] rounded-lg p-4 mb-6 text-left">
-                <h3 className="text-[13px] font-semibold text-[#0c4a6e] mb-2">
+                <h3 className="text-[13px] font-semibold text-[#0c4a6e] mb-3">
                   Next steps:
                 </h3>
-                <ol className="text-[12px] text-[#0c4a6e] space-y-1 list-decimal list-inside">
-                  <li>Check your email inbox</li>
-                  <li>Click the reset link</li>
-                  <li>Enter the OTP code</li>
-                  <li>Create a new password</li>
+                <ol className="text-[12px] text-[#0c4a6e] space-y-2 list-decimal list-inside">
+                  <li>Check your email inbox for the code</li>
+                  <li>Copy the 6-digit OTP code</li>
+                  <li>Enter it on the next page</li>
+                  <li>Create your new password</li>
                 </ol>
               </div>
 
+              {/* Info Box */}
+              <div className="bg-[#fef3c7] border border-[#fcd34d] rounded-lg p-3.5 mb-6">
+                <p className="text-[12px] text-[#92400e]">
+                  💡 <strong>Tip:</strong> The OTP code is valid for 10 minutes. Don't share it with anyone.
+                </p>
+              </div>
+
               {/* Button */}
-              <Link
-                href="/auth/login"
-                className="inline-block w-full h-11 bg-[#1a3fd4] hover:bg-[#1631b6] text-white font-semibold text-[13.5px] rounded-[10px] transition-all duration-200 flex items-center justify-center"
+              <button
+                onClick={() => router.push(`/auth/reset-password?email=${encodeURIComponent(submittedEmail)}`)}
+                className="w-full h-11 bg-[#1a3fd4] hover:bg-[#1631b6] text-white font-semibold text-[13.5px] rounded-[10px] transition-all duration-200 flex items-center justify-center"
               >
-                Return to Login
-              </Link>
+                Continue to Verify OTP
+              </button>
 
               {/* Resend Option */}
               <p className="text-[13px] text-[#6b7280] mt-6">

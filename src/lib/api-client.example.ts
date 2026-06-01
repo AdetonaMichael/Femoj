@@ -253,11 +253,10 @@ export function ExampleComponent() {
     }
   };
 
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      {/* Form fields */}
-    </form>
-  );
+  // JSX example (for documentation purposes)
+  // Usage: <form onSubmit={form.handleSubmit(onSubmit)}>
+  //          {/* Form fields */}
+  //        </form>
 }
 
 /**

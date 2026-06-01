@@ -15,18 +15,20 @@ import { COUNTRIES } from "@/constants";
 // Mock Users
 export const MOCK_USERS: User[] = [
   {
-    id: "user_1",
-    firstName: "John",
-    lastName: "Doe",
+    id: 1,
+    first_name: "John",
+    last_name: "Doe",
     email: "john@example.com",
-    phone: "+14155552671",
-    country: "US",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    role: "user",
-    status: "active",
-    kycStatus: "verified",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-05-20"),
+    phone_number: "+14155552671",
+    email_verified_at: "2024-01-15T00:00:00Z",
+    phone_verified_at: "2024-01-15T00:00:00Z",
+    balance: 1250.5,
+    account_type: "individual",
+    referral_code: "USER123",
+    referral_count: 5,
+    total_referral_earnings: 500.0,
+    created_at: "2024-01-15T00:00:00Z",
+    updated_at: "2024-05-20T00:00:00Z",
   },
 ];
 
@@ -193,20 +195,20 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
 
 // Mock Referral Stats
 export const MOCK_REFERRAL_STATS: ReferralStats = {
-  totalReferrals: 24,
-  activeReferrals: 18,
-  totalEarnings: 3600,
-  monthlyEarnings: 450,
+  totalReferrals: 0,
+  activeReferrals: 0,
+  totalEarnings: 0,
+  monthlyEarnings: 0,
   commissionRate: 10,
-  pendingPayout: 850.75,
+  pendingPayout: 0.00,
 };
 
 // Mock Dashboard Stats
 export const MOCK_DASHBOARD_STATS: DashboardStats = {
-  totalBalance: 1250.5,
-  activeNumbers: 2,
-  monthlySMS: 156,
-  monthlySpending: 79.98,
+  totalBalance:0.00,
+  activeNumbers: 0,
+  monthlySMS: 0,
+  monthlySpending: 0,
 };
 
 // Mock Notifications

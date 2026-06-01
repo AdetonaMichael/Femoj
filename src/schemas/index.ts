@@ -277,22 +277,4 @@ export const otpVerificationSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, "OTP must be 6 digits"),
 });
 
-export type LoginSchema = z.infer<typeof loginSchema>;
-export type SignupStep1Schema = z.infer<typeof signupStep1Schema>;
-export type SignupStep2Schema = z.infer<typeof signupStep2Schema>;
-export type SignupStep3Schema = z.infer<typeof signupStep3Schema>;
-export type SignupStep4Schema = z.infer<typeof signupStep4Schema>;
-export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
-export type NumberSearchSchema = z.infer<typeof numberSearchSchema>;
-export type SendSMSSchema = z.infer<typeof sendSMSSchema>;
-export type FundWalletSchema = z.infer<typeof fundWalletSchema>;
-export type WithdrawalSchema = z.infer<typeof withdrawalSchema>;
-export type UpdateProfileSchema = z.infer<typeof updateProfileSchema>;
-export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
-export type Enable2FASchema = z.infer<typeof enable2FASchema>;
-export type Verify2FASchema = z.infer<typeof verify2FASchema>;
-export type AddNumberSchema = z.infer<typeof addNumberSchema>;
-export type ContactFormSchema = z.infer<typeof contactFormSchema>;
-export type NewsletterSchema = z.infer<typeof newsletterSchema>;
 export type OTPVerificationSchema = z.infer<typeof otpVerificationSchema>;

@@ -156,7 +156,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* ── Stat cards ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <div className="flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8 overflow-x-auto pb-2 md:pb-0 -mx-4 md:mx-0 px-4 md:px-0 md:overflow-x-visible snap-x snap-mandatory md:snap-none">
           {statCards.map((card, i) => {
             const Icon = card.icon;
             return (
@@ -166,8 +166,9 @@ export default function DashboardPage() {
                 custom={i + 1}
                 initial="hidden"
                 animate="show"
+                className="flex-shrink-0 w-full sm:w-auto md:flex-shrink md:w-auto snap-start"
               >
-                <div className="rounded-lg border border-[#e8eaed] bg-white p-5 hover:shadow-[0_1px_6px_rgba(32,33,36,.18)] transition-shadow h-full flex flex-col justify-between">
+                <div className="rounded-lg border border-[#e8eaed] bg-white p-5 hover:shadow-[0_1px_6px_rgba(32,33,36,.18)] transition-shadow h-full flex flex-col justify-between min-w-0">
                   <div className="flex items-start justify-between mb-4">
                     <span className="text-xs font-medium text-[#5f6368] uppercase tracking-wide">
                       {card.label}

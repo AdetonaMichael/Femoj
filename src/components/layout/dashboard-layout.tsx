@@ -85,10 +85,10 @@ export function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors border-l-4 ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:bg-muted"
+                    ? "bg-blue-50 text-primary border-l-primary"
+                    : "text-muted-foreground hover:bg-muted border-l-transparent"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -99,11 +99,11 @@ export function DashboardLayout({
         </nav>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-border space-y-3">
+        <div className="p-4 border-t border-border space-y-3 bg-blue-50">
           <div className="flex items-center gap-3 px-4 py-2">
-            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-              {user?.first_name.charAt(0)}
-              {user?.last_name.charAt(0)}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-blue-700 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
+              {user?.first_name?.charAt(0) || 'U'}
+              {user?.last_name?.charAt(0) || ''}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">
@@ -189,13 +189,13 @@ export function DashboardLayout({
 
       {/* Mobile Sidebar Drawer */}
       <motion.aside
-        className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-card-background z-50 md:hidden flex flex-col"
+        className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-white z-50 md:hidden flex flex-col shadow-lg"
         initial={{ x: -256 }}
         animate={{ x: sidebarOpen ? 0 : -256 }}
         transition={{ duration: 0.3 }}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-border flex items-center gap-2 bg-card-background">
+        <div className="p-6 border-b border-border flex items-center gap-2 bg-white">
           <Image
             src={logo1}
             alt="Femoj Logo"
@@ -204,7 +204,7 @@ export function DashboardLayout({
             priority
             className="h-8 w-auto"
           />
-          <span className="font-bold text-lg">FeMOJ</span>
+          <span className="font-bold text-lg">FeMOJ World</span>
         </div>
 
         {/* Navigation */}
@@ -218,10 +218,10 @@ export function DashboardLayout({
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors border-l-4 ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:bg-muted"
+                    ? "bg-blue-50 text-primary border-l-primary"
+                    : "text-muted-foreground hover:bg-muted border-l-transparent"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -232,11 +232,11 @@ export function DashboardLayout({
         </nav>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-border space-y-3 bg-card-background">
+        <div className="p-4 border-t border-border space-y-3 bg-blue-50">
           <div className="flex items-center gap-3 px-4 py-2">
-            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-              {user?.first_name.charAt(0)}
-              {user?.last_name.charAt(0)}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-blue-700 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
+              {user?.first_name?.charAt(0) || 'U'}
+              {user?.last_name?.charAt(0) || ''}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">
