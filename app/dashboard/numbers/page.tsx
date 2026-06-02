@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Button, Input } from "@/components/ui";
-import { MOCK_NUMBERS, MOCK_COUNTRIES_EXTENDED } from "@/mock/data";
+import { Button, Input, CountryFlag, FlagWithCode } from "@/components/ui";
+import { MOCK_NUMBERS } from "@/mock/data";
+import { useAvailableNumbers, useSupportedCountries } from "@/hooks/usePhoneNumbers";
+import phoneNumberService from "@/lib/phoneNumberService";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -14,6 +17,7 @@ import {
   Clock,
   ChevronRight,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils";
 import { toast } from "sonner";
@@ -77,22 +81,59 @@ const marketplaceStats = [
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 export default function NumbersPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [selectedCountries, setSelectedCountries] = useState<Record<string, boolean>>({});
+  const [offset, setOffset] = useState(0);
+  const [allCountries, setAllCountries] = useState<Array<{ code: string; name: string }>>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  const numbers = MOCK_NUMBERS as VirtualNumber[];
-  const allCountries = MOCK_COUNTRIES_EXTENDED as Country[];
+  const numbers = MOCK_NUMBERS;
+  const { countries, pagination, isLoading: countriesLoading, error: countriesError } = useSupportedCountries(20, offset);
 
-  const filteredCountries = allCountries.filter((c) => {
-    const matchName = c.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchType = !selectedType; // extend when real filter logic exists
-    return matchName && matchType;
-  });
+  // Accumulate countries as we fetch more
+  useEffect(() => {
+    if (Array.isArray(countries) && countries.length > 0 && !countriesLoading) {
+      if (offset === 0) {
+        // First load
+        setAllCountries(countries);
+      } else {
+        // Append to existing, removing duplicates by code
+        setAllCountries(prev => {
+          const combined = [...prev, ...countries];
+          const unique = Array.from(new Map(combined.map(c => [c.code, c])).values());
+          return unique.sort((a, b) => a.name.localeCompare(b.name));
+        });
+      }
+      
+      setHasMore(pagination?.has_more || false);
+      setIsLoadingMore(false);
+    }
+  }, [countries, countriesLoading, offset, pagination]);
 
-  const handlePurchase = (label: string) => {
-    toast.success(`Successfully purchased: ${label}`);
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setOffset(prev => prev + 20);
+  };
+
+  // Get list of countries from accumulated countries
+  const countryList = useMemo(() => {
+    if (allCountries.length === 0) return [];
+    return allCountries;
+  }, [allCountries]);
+
+  const filteredCountries = useMemo(() => {
+    return countryList.filter((c) => {
+      const matchName = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchType = !selectedType;
+      return matchName && matchType;
+    });
+  }, [countryList, searchTerm, selectedType]);
+
+  const handlePurchase = (countryCode: string) => {
+    router.push(`/dashboard/numbers/${countryCode}`);
   };
 
   const handleRenew = (number: string) => {
@@ -121,15 +162,13 @@ export default function NumbersPage() {
               Buy, rent, and manage virtual numbers from around the world.
             </p>
           </div>
-          <Button
-            asChild
-            className="h-9 px-4 text-sm bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-md gap-2 font-medium shadow-none w-fit"
+          <a
+            href="#marketplace"
+            className="inline-flex items-center gap-2 h-9 px-4 text-sm bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-md font-medium shadow-none w-fit transition-colors"
           >
-            <a href="#marketplace">
-              <Plus className="w-4 h-4" />
-              Buy Number
-            </a>
-          </Button>
+            <Plus className="w-4 h-4" />
+            Buy Number
+          </a>
         </motion.div>
 
         {/* ── My Numbers ──────────────────────────────────────────────────── */}
@@ -303,83 +342,84 @@ export default function NumbersPage() {
 
             {/* Country grid */}
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCountries.map((country, i) => (
-                <motion.div
-                  key={country.code}
-                  variants={fadeUp}
-                  custom={i}
-                  initial="hidden"
-                  animate="show"
-                  className="rounded-lg border border-[#e8eaed] bg-white hover:shadow-[0_1px_6px_rgba(32,33,36,.18)] transition-shadow flex flex-col"
-                >
-                  {/* Card header */}
-                  <div className="flex items-start gap-3 px-4 pt-4 pb-3 border-b border-[#f1f3f4]">
-                    <span className="text-2xl leading-none">{country.flag}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#202124] truncate">
-                        {country.name}
-                      </p>
-                      <p className="text-xs text-[#5f6368]">
-                        {country.dialCode}
-                      </p>
-                    </div>
-                    <span className="text-[11px] text-[#5f6368] shrink-0">
-                      {country.numbersAvailable} avail.
-                    </span>
-                  </div>
-
-                  {/* Pricing */}
-                  <div className="grid grid-cols-2 divide-x divide-[#f1f3f4] px-0">
-                    <div className="px-4 py-3">
-                      <p className="text-[10px] font-medium text-[#5f6368] uppercase tracking-wide mb-1">
-                        Temporary
-                      </p>
-                      <p className="text-sm font-semibold text-[#202124]">
-                        {formatCurrency(country.pricing.temporary)}
-                      </p>
-                      <p className="text-[10px] text-[#5f6368]">30 days</p>
-                    </div>
-                    <div className="px-4 py-3">
-                      <p className="text-[10px] font-medium text-[#5f6368] uppercase tracking-wide mb-1">
-                        Permanent
-                      </p>
-                      <p className="text-sm font-semibold text-[#202124]">
-                        {formatCurrency(country.pricing.permanent)}
-                      </p>
-                      <p className="text-[10px] text-[#5f6368]">/month</p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 px-4 pb-4 pt-3 mt-auto">
-                    <button
-                      onClick={() =>
-                        handlePurchase(`temporary from ${country.name}`)
-                      }
-                      className="flex-1 h-8 text-xs font-medium rounded border border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] transition-colors"
-                    >
-                      Rent
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePurchase(`permanent from ${country.name}`)
-                      }
-                      className="flex-1 h-8 text-xs font-medium rounded bg-[#1a73e8] text-white hover:bg-[#1765cc] transition-colors"
-                    >
-                      Buy
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-
-              {filteredCountries.length === 0 && (
+              {countriesLoading ? (
+                <div className="col-span-full flex items-center justify-center py-16">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#1a73e8] mr-2" />
+                  <span className="text-sm text-[#5f6368]">Loading countries...</span>
+                </div>
+              ) : countriesError ? (
+                <div className="col-span-full py-16 text-center">
+                  <p className="text-sm text-red-600 mb-2">Failed to load countries</p>
+                  <p className="text-xs text-[#5f6368]">{countriesError}</p>
+                </div>
+              ) : filteredCountries.length === 0 ? (
                 <div className="col-span-full py-16 text-center text-sm text-[#5f6368]">
                   No countries match your search.
                 </div>
+              ) : (
+                filteredCountries.map((country, i) => (
+                  <motion.div
+                    key={country.code}
+                    variants={fadeUp}
+                    custom={i}
+                    initial="hidden"
+                    animate="show"
+                    className="rounded-lg border border-[#e8eaed] bg-white hover:shadow-[0_1px_6px_rgba(32,33,36,.18)] transition-shadow flex flex-col"
+                  >
+                    {/* Card header */}
+                    <div className="flex items-center gap-3 px-4 py-4">
+                      <CountryFlag code={country.code} size="lg" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#202124] truncate">
+                          {country.name}
+                        </p>
+                        <p className="text-xs text-[#5f6368]">
+                          +{country.code}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 px-4 pb-4 pt-3 mt-auto">
+                      <button
+                        onClick={() => handlePurchase(country.code)}
+                        className="w-full h-8 text-xs font-medium rounded bg-[#1a73e8] text-white hover:bg-[#1765cc] transition-colors"
+                      >
+                        Rent
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
               )}
             </div>
           </div>
         </motion.div>
+
+        {/* Load More Button */}
+        {hasMore && !countriesLoading && (
+          <motion.div
+            variants={fadeUp}
+            custom={numbers.length + 4}
+            initial="hidden"
+            animate="show"
+            className="flex justify-center pt-6"
+          >
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="h-10 px-6 text-sm font-medium rounded bg-[#f8f9fa] text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                `Load More (${allCountries.length} of ${pagination?.total || 'more'} countries)`
+              )}
+            </button>
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

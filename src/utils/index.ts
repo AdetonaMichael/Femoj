@@ -10,16 +10,86 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format currency
+ * Currency to locale mapping for proper formatting
+ */
+const CURRENCY_LOCALES: Record<string, string> = {
+  "NGN": "en-NG", // Nigerian Naira
+  "USD": "en-US", // US Dollar
+  "EUR": "en-IE", // Euro
+  "GBP": "en-GB", // British Pound
+  "CAD": "en-CA", // Canadian Dollar
+  "AUD": "en-AU", // Australian Dollar
+  "JPY": "ja-JP", // Japanese Yen
+  "INR": "en-IN", // Indian Rupee
+  "ZAR": "en-ZA", // South African Rand
+  "KES": "en-KE", // Kenyan Shilling
+  "GHS": "en-GH", // Ghanaian Cedi
+};
+
+/**
+ * Format currency with flexible currency selection
+ * @param amount - The amount to format
+ * @param currency - Currency code (USD, NGN, EUR, GBP, etc.) - defaults to NGN
+ * @returns Formatted currency string
+ * 
+ * @example
+ * formatCurrency(1000)           // ₦1,000.00 (Nigerian Naira)
+ * formatCurrency(1000, "USD")    // $1,000.00 (US Dollar)
+ * formatCurrency(1000, "EUR")    // €1,000.00 (Euro)
+ * formatCurrency(1000, "GBP")    // £1,000.00 (British Pound)
  */
 export function formatCurrency(
   amount: number,
-  currency: string = "USD"
+  currency: string = "NGN"
 ): string {
-  return new Intl.NumberFormat("en-US", {
+  const locale = CURRENCY_LOCALES[currency] || "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
   }).format(amount);
+}
+
+/**
+ * Format currency in Nigerian Naira (legacy function - use formatCurrency instead)
+ */
+export function formatNaira(amount: number): string {
+  return formatCurrency(amount, "NGN");
+}
+
+/**
+ * Get all supported currencies
+ */
+export function getSupportedCurrencies(): Array<{ code: string; name: string }> {
+  return [
+    { code: "NGN", name: "Nigerian Naira" },
+    { code: "USD", name: "US Dollar" },
+    { code: "EUR", name: "Euro" },
+    { code: "GBP", name: "British Pound" },
+    { code: "CAD", name: "Canadian Dollar" },
+    { code: "AUD", name: "Australian Dollar" },
+    { code: "JPY", name: "Japanese Yen" },
+    { code: "INR", name: "Indian Rupee" },
+    { code: "ZAR", name: "South African Rand" },
+    { code: "KES", name: "Kenyan Shilling" },
+    { code: "GHS", name: "Ghanaian Cedi" },
+  ];
+}
+
+/**
+ * Check if a currency is supported
+ */
+export function isSupportedCurrency(currency: string): boolean {
+  return currency in CURRENCY_LOCALES;
+}
+
+/**
+ * Get currency symbol for display
+ */
+export function getCurrencySymbol(currency: string): string {
+  return new Intl.NumberFormat(CURRENCY_LOCALES[currency] || "en-US", {
+    style: "currency",
+    currency,
+  }).formatToParts(0)[0]?.value || currency;
 }
 
 /**

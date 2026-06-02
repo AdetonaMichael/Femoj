@@ -237,11 +237,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* DNS Prefetch */}
-        <link rel="dns-prefetch" href="https://analytics.google.com" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-
         {/* Alternate Language Links */}
         <link rel="alternate" hrefLang="en-US" href="https://femoj.com" />
         <link rel="alternate" hrefLang="x-default" href="https://femoj.com" />
@@ -317,22 +312,25 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', 'YOUR_FACEBOOK_PIXEL_ID');
-              fbq('track', 'PageView');
+              const pixelId = 'YOUR_FACEBOOK_PIXEL_ID';
+              if(pixelId && pixelId !== 'YOUR_FACEBOOK_PIXEL_ID') {
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', pixelId);
+                fbq('track', 'PageView');
+              }
             `,
           }}
         />
 
         {/* Preload Critical Resources */}
-        <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" />
 
         {/* Open Graph and Twitter Card images */}
         <meta property="og:image:type" content="image/png" />

@@ -12,3 +12,4 @@ export {default as uber} from "./uber.png";
 export {default as telegram} from "./telegram.png";
 export {default as snapchat} from "./snapchat.png";
 export {default as payoneer} from "./payoneer.png";
+export {default as pstack} from "./pstack.png";

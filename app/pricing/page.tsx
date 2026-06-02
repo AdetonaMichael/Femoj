@@ -110,14 +110,17 @@ export default function PricingPage() {
                         )}
                       </div>
 
-                      <Button
-                        fullWidth
-                        variant={tier.featured ? "default" : "outline"}
-                        className="mb-6"
-                        asChild
+                      <a
+                        href="/auth/register"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap w-full px-4 py-2 text-base h-10 mb-6"
+                        style={{
+                          backgroundColor: tier.featured ? "var(--color-primary)" : "transparent",
+                          color: tier.featured ? "white" : "var(--color-primary)",
+                          border: tier.featured ? "none" : "1px solid var(--color-border)"
+                        }}
                       >
-                        <Link href="/auth/register">Get Started</Link>
-                      </Button>
+                        Get Started
+                      </a>
                     </CardHeader>
 
                     <CardContent>
@@ -304,9 +307,12 @@ export default function PricingPage() {
               <p className="text-xl text-muted-foreground mb-8">
                 Start free today. No credit card required.
               </p>
-              <Button size="lg" asChild>
-                <Link href="/auth/register">Get Started Free</Link>
-              </Button>
+              <a
+                href="/auth/register"
+                className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap px-6 py-3 text-lg h-12 bg-primary text-white hover:bg-primary/90 active:bg-primary/80"
+              >
+                Get Started Free
+              </a>
             </motion.div>
           </Container>
         </motion.section>

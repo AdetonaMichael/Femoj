@@ -252,12 +252,18 @@ export default function AboutPage() {
                 Join thousands of businesses using Femoj to scale globally
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" asChild>
-                  <Link href="/auth/register">Start Free Trial</Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/contact">Contact Sales</Link>
-                </Button>
+                <a
+                  href="/auth/register"
+                  className="inline-flex items-center justify-center rounded-lg font-medium transition-colors px-6 py-3 text-lg h-12 bg-primary text-white hover:bg-primary/90 active:bg-primary/80"
+                >
+                  Start Free Trial
+                </a>
+                <a
+                  href="/contact"
+                  className="inline-flex items-center justify-center rounded-lg font-medium transition-colors px-6 py-3 text-lg h-12 border border-input bg-background hover:bg-muted active:bg-muted/80"
+                >
+                  Contact Sales
+                </a>
               </div>
             </motion.div>
           </Container>

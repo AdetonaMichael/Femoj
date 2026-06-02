@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { authService } from "@/services/api";
 import { setAccessToken } from "@/lib/token";
+import { setAuthToken as setPhoneServiceAuthToken } from "@/lib/phoneNumberService";
 import type {
   RegisterRequest,
   LoginRequest,
@@ -54,6 +55,7 @@ export function useRegister() {
           // Store token and redirect to verification
           if (token) {
             setAccessToken(token);
+            setPhoneServiceAuthToken(token);
           }
           setRegistrationEmail(user.email);
           setSuccessMessage(
@@ -116,10 +118,11 @@ export function useLogin() {
 
           // Store user and token (this also sets isAuthenticated = true)
           setAccessToken(token);
+          setPhoneServiceAuthToken(token);
           setUser(user);
           setSuccessMessage("Login successful!");
 
-          console.log("[useLogin] Token and user stored in state");
+          console.log("[useLogin] Token and user stored in state and phone service");
 
           // Wait a moment to ensure state propagates
           await new Promise(resolve => setTimeout(resolve, 50));

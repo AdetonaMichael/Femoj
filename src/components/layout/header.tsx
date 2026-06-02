@@ -35,12 +35,12 @@ export function Header() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/auth/login">Login</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/auth/register">Sign Up</Link>
-          </Button>
+          <a href="/auth/login" className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap hover:bg-muted active:bg-muted/80 text-foreground px-3 py-1.5 text-sm h-9 text-[#1a73e8]">
+            Sign In
+          </a>
+          <a href="/auth/register" className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap bg-primary text-white hover:bg-primary/90 active:bg-primary/80 px-3 py-1.5 text-sm h-9">
+            Sign Up
+          </a>
         </div>
 
         {/* Mobile Menu Button */}
@@ -71,12 +71,12 @@ export function Header() {
             </Link>
           ))}
           <div className="flex flex-col gap-2 pt-2 border-t border-border mt-2">
-            <Button variant="ghost" size="sm" fullWidth asChild>
-              <Link href="/auth/login">Login</Link>
-            </Button>
-            <Button size="sm" fullWidth asChild>
-              <Link href="/auth/register">Sign Up</Link>
-            </Button>
+            <a href="/auth/login" className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap hover:bg-muted active:bg-muted/80 text-foreground px-3 py-1.5 text-sm h-9 text-[#1a73e8] w-full">
+              Sign In
+            </a>
+            <a href="/auth/register" className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap bg-primary text-white hover:bg-primary/90 active:bg-primary/80 px-3 py-1.5 text-sm h-9 w-full">
+              Sign Up
+            </a>
           </div>
         </div>
       )}

@@ -12,7 +12,6 @@ import {
   X,
   LogOut,
   Settings,
-  Bell,
   Search,
   LayoutDashboard,
   Smartphone,
@@ -22,6 +21,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
+import { NotificationBell } from "@/components/notifications";
 import Image from "next/image";
 import { logo1 } from "../../../public";
 
@@ -156,10 +156,7 @@ export function DashboardLayout({
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-muted rounded-lg relative">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full" />
-            </button>
+            <NotificationBell />
 
             <Link href="/dashboard/settings" className="p-2 hover:bg-muted rounded-lg">
               <Settings className="w-5 h-5 text-muted-foreground" />

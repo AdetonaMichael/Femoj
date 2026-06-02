@@ -248,6 +248,107 @@ export interface SMSConversation {
   createdAt: Date;
 }
 
+/**
+ * Notification Types
+ */
+export type NotificationType = "transaction" | "system" | "promotion" | "update" | "alert";
+export type NotificationPriority = "low" | "normal" | "high";
+
+export interface NotificationData {
+  [key: string]: string | number | boolean | object | null;
+}
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  title: string;
+  body: string;
+  type: NotificationType;
+  priority: NotificationPriority;
+  data: NotificationData | null;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationStats {
+  total: number;
+  unread: number;
+  by_type: Record<NotificationType, number>;
+  by_priority: Record<NotificationPriority, number>;
+}
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  transaction_notifications: boolean;
+  system_notifications: boolean;
+  promotion_notifications: boolean;
+  update_notifications: boolean;
+  alert_notifications: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+}
+
+export interface Pagination {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+}
+
+export interface NotificationsListResponse {
+  data: Notification[];
+  pagination: Pagination;
+}
+
+export interface NotificationFilterParams {
+  page?: number;
+  per_page?: number;
+  type?: NotificationType;
+  unread_only?: boolean;
+  priority?: NotificationPriority;
+}
+
+export interface SendNotificationRequest {
+  user_id: number;
+  title: string;
+  body: string;
+  type: NotificationType;
+  priority?: NotificationPriority;
+  data?: NotificationData;
+}
+
+export interface SendMultipleNotificationsRequest {
+  user_ids: number[];
+  title: string;
+  body: string;
+  type: NotificationType;
+  priority?: NotificationPriority;
+  data?: NotificationData;
+}
+
+export interface DeleteMultipleNotificationsRequest {
+  ids: number[];
+}
+
+export interface PushTokenRequest {
+  expo_push_token: string;
+  device_info?: {
+    model?: string;
+    os?: string;
+    os_version?: string;
+    app_version?: string;
+  };
+}
+
+export interface NotificationBellResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+  error?: string;
+  details?: Record<string, string[]>;
+}
+
 export interface SendSMSPayload {
   to: string;
   content: string;
@@ -298,6 +399,35 @@ export interface WithdrawalRequest {
   status: "pending" | "completed" | "failed";
   createdAt: Date;
 }
+
+/* ─── Payment Types (Paystack) ────────────────────────────────────────────── */
+
+// Re-export payment types from payment.ts
+export type {
+  PaystackPaymentData,
+  PaymentInitResponse,
+  PaymentVerifyResponse,
+  DirectCheckoutResponse,
+  WalletFundingRequest,
+  DirectCheckoutRequest,
+  CheckoutItem,
+  PaymentStatus,
+  CheckoutType,
+  PaymentState,
+  UsePaymentReturn,
+  WalletTransaction,
+  WalletBalance,
+  PaystackTransaction,
+  PaymentCallbackParams,
+  PaymentServiceResult,
+  InitializePaymentResult,
+  VerifyPaymentResult,
+  DirectCheckoutResult,
+  WalletFundingModalProps,
+  FundingPresetsProps,
+  PaymentCallbackProps,
+  PaymentConfig,
+} from "./payment";
 
 // Referral Types
 export interface Referral {

@@ -212,35 +212,27 @@ export default function DashboardPage() {
               Quick Actions
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button
-                asChild
-                className="h-9 px-4 text-sm bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-md gap-2 font-medium shadow-none"
+              <a
+                href="/dashboard/numbers"
+                className="inline-flex items-center gap-2 h-9 px-4 text-sm bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-md font-medium shadow-none transition-colors"
               >
-                <Link href="/dashboard/numbers">
-                  <Plus className="w-4 h-4" />
-                  Buy Number
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-9 px-4 text-sm border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] rounded-md gap-2 font-medium shadow-none"
+                <Plus className="w-4 h-4" />
+                Buy Number
+              </a>
+              <a
+                href="/dashboard/sms"
+                className="inline-flex items-center gap-2 h-9 px-4 text-sm border border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] rounded-md font-medium shadow-none transition-colors"
               >
-                <Link href="/dashboard/sms">
-                  <MessageSquare className="w-4 h-4" />
-                  Send SMS
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-9 px-4 text-sm border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] rounded-md gap-2 font-medium shadow-none"
+                <MessageSquare className="w-4 h-4" />
+                Send SMS
+              </a>
+              <a
+                href="/dashboard/wallet"
+                className="inline-flex items-center gap-2 h-9 px-4 text-sm border border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] rounded-md font-medium shadow-none transition-colors"
               >
-                <Link href="/dashboard/wallet">
-                  <CreditCard className="w-4 h-4" />
-                  Fund Wallet
-                </Link>
-              </Button>
+                <CreditCard className="w-4 h-4" />
+                Fund Wallet
+              </a>
             </div>
           </div>
         </motion.div>

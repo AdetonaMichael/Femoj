@@ -74,6 +74,15 @@ export async function apiFetch<TData = unknown>(
 
     // Handle non-2xx responses
     if (!response.ok) {
+      // Handle rate limiting (429) with a friendly message
+      if (response.status === 429) {
+        return {
+          success: false,
+          message: data.message || "You're making requests too quickly. Please wait a moment and try again.",
+          errors: data.errors || { rateLimit: ["Too many requests"] },
+        } as ApiErrorResponse;
+      }
+
       return {
         success: false,
         message: data.message || `API Error: ${response.status}`,

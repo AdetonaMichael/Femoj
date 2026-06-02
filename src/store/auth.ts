@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User } from "@/types";
 import { getAccessToken, setAccessToken, clearAllTokens } from "@/lib/token";
+import { setAuthToken as setPhoneServiceAuthToken } from "@/lib/phoneNumberService";
 
 interface AuthState {
   // User data
@@ -121,6 +122,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         clearAllTokens();
+        setPhoneServiceAuthToken(""); // Clear token from phone service client
         set({
           user: null,
           accessToken: null,
