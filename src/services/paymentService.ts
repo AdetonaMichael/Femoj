@@ -206,7 +206,6 @@ class PaymentService {
         data: response.data,
         error: response.error,
         errors: response.errors,
-        status: response.status,
         rawResponse: response
       });
 

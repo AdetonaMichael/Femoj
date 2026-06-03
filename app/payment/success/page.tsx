@@ -31,15 +31,37 @@ function PaymentSuccessContent() {
     const verifyPaymentStatus = async () => {
       const reference = searchParams.get("reference");
 
+      console.log("[PaymentSuccessPage] 🔍 Starting verification process...", {
+        reference,
+        timestamp: new Date().toISOString(),
+      });
+
       if (!reference) {
+        console.error("[PaymentSuccessPage] ❌ No reference found in URL params");
         setStatus("failed");
         return;
       }
 
       try {
+        console.log("[PaymentSuccessPage] Calling verifyPayment() with reference:", reference);
         const result = await verifyPayment(reference);
 
+        console.log("[PaymentSuccessPage] 📦 Verification response received:", {
+          success: result.success,
+          message: result.message,
+          dataAvailable: !!result.data,
+          data: result.data,
+          fullResult: result,
+        });
+
         if (result.success && result.data) {
+          console.log("[PaymentSuccessPage] ✅ Verification SUCCESS - Setting payment info", {
+            reference: result.data.reference,
+            amount: result.data.amount,
+            status: result.data.status,
+            paid_at: result.data.paid_at,
+          });
+
           setPaymentInfo({
             reference: result.data.reference,
             amount: result.data.amount,
@@ -49,6 +71,7 @@ function PaymentSuccessContent() {
           setStatus("success");
           PaymentService.clearStoredReference();
 
+          console.log("[PaymentSuccessPage] ✅ Starting auto-redirect to dashboard in 5 seconds...");
           // Auto-redirect after 5 seconds
           let countdown = 5;
           const timer = setInterval(() => {
@@ -56,16 +79,27 @@ function PaymentSuccessContent() {
             setRedirectCountdown(countdown);
             if (countdown <= 0) {
               clearInterval(timer);
+              console.log("[PaymentSuccessPage] ⏰ Redirect countdown complete, navigating to dashboard");
               router.push("/dashboard");
             }
           }, 1000);
 
           return () => clearInterval(timer);
         } else {
+          console.error("[PaymentSuccessPage] ❌ Verification FAILED - Setting status to failed", {
+            success: result.success,
+            message: result.message,
+            hasData: !!result.data,
+          });
           setStatus("failed");
         }
-      } catch (error) {
-        console.error("Verification error:", error);
+      } catch (error: any) {
+        console.error("[PaymentSuccessPage] ❌ Verification error - Exception caught:", {
+          message: error?.message,
+          stack: error?.stack,
+          fullError: error,
+          timestamp: new Date().toISOString(),
+        });
         setStatus("failed");
       }
     };

@@ -150,6 +150,8 @@ export const usePayment = (): UsePaymentReturn => {
    */
   const verifyPayment = useCallback(
     async (reference: string): Promise<VerifyPaymentResult> => {
+      console.log("[usePayment] 🔍 verifyPayment() called with reference:", reference);
+
       setState((prev): PaymentState => ({
         isLoading: true,
         error: null,
@@ -158,9 +160,17 @@ export const usePayment = (): UsePaymentReturn => {
       }));
 
       try {
+        console.log("[usePayment] Calling PaymentService.verifyPayment()...");
         const result = await PaymentService.verifyPayment(reference);
 
+        console.log("[usePayment] Received result from PaymentService:", {
+          success: result.success,
+          message: result.message,
+          dataAvailable: !!result.data,
+        });
+
         if (result.success) {
+          console.log("[usePayment] ✅ Verification successful, updating state");
           setState((prev): PaymentState => ({
             isLoading: prev.isLoading,
             error: null,
@@ -168,6 +178,7 @@ export const usePayment = (): UsePaymentReturn => {
             paymentData: prev.paymentData,
           }));
         } else {
+          console.error("[usePayment] ❌ Verification failed:", result.message);
           setState((prev): PaymentState => ({
             isLoading: prev.isLoading,
             error: result.message || "Payment verification failed",
@@ -180,6 +191,10 @@ export const usePayment = (): UsePaymentReturn => {
       } catch (error: any) {
         const errorMsg =
           error?.message || "Payment verification failed. Please try again.";
+        console.error("[usePayment] ❌ verifyPayment() exception:", {
+          message: error?.message,
+          error: error,
+        });
         setState((prev): PaymentState => ({
           isLoading: prev.isLoading,
           error: errorMsg,
