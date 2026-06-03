@@ -61,8 +61,16 @@ export async function apiFetch<TData = unknown>(
       headers,
     });
 
-    const data = await response.json();
-
+    let data = await response.json();
+    // Unwrap Laravel HTTP Response wrapper if present
+    // Backend may wrap response in: { headers: {...}, original: {...}, exception: null }
+    if (data && typeof data === 'object' && 'original' in data && !('success' in data)) {
+      console.log("[API Client] Unwrapping Laravel Response wrapper...", {
+        endpoint,
+        hadOriginal: true,
+      });
+      data = data.original;
+    }
     // Special logging for verification endpoint
     if (endpoint.includes('paystack-verify')) {
       console.log("[API Verify Endpoint] Raw Response:", {

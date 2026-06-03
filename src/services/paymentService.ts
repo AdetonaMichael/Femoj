@@ -212,6 +212,7 @@ class PaymentService {
         data: response.data,
         error: response.error,
         errors: response.errors,
+        note: "Response should now be unwrapped by api-client",
         rawResponse: response
       });
 
