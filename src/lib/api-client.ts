@@ -63,6 +63,19 @@ export async function apiFetch<TData = unknown>(
 
     const data = await response.json();
 
+    // Special logging for verification endpoint
+    if (endpoint.includes('paystack-verify')) {
+      console.log("[API Verify Endpoint] Raw Response:", {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        contentType: response.headers.get('content-type'),
+        dataKeys: Object.keys(data),
+        fullData: data,
+      });
+    }
+
     // Log response if verbose logging is enabled
     if (process.env.NEXT_PUBLIC_VERBOSE_API_LOGGING === "true") {
       console.log("[API Response]", {
@@ -88,6 +101,16 @@ export async function apiFetch<TData = unknown>(
         message: data.message || `API Error: ${response.status}`,
         errors: data.errors || { general: [response.statusText] },
       } as ApiErrorResponse;
+    }
+
+    // Special logging for verification endpoint
+    if (endpoint.includes('paystack-verify')) {
+      console.log("[API Verify Endpoint] Final Response:", {
+        endpoint,
+        returning: data as ApiResponse<TData>,
+        dataType: typeof data,
+        isObject: data && typeof data === 'object',
+      });
     }
 
     return data as ApiResponse<TData>;

@@ -190,13 +190,19 @@ class PaymentService {
 
       console.log("[PaymentService] Starting verification for reference:", reference);
 
+      const endpoint = `${PAYMENT_ENDPOINTS.VERIFY}/${reference}`;
+      console.log("[PaymentService] Verification endpoint:", {
+        endpoint,
+        fullUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`,
+      });
+
       const response = await apiGet<{
         reference: string;
         amount: number;
         status: string;
         paid_at: string;
       }>(
-        `${PAYMENT_ENDPOINTS.VERIFY}/${reference}`,
+        endpoint,
         { requiresAuth: true }
       );
 
