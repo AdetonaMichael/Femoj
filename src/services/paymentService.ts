@@ -181,11 +181,14 @@ class PaymentService {
   ): Promise<VerifyPaymentResult> {
     try {
       if (!reference) {
+        console.error("[PaymentService] Verification error: No reference provided");
         return {
           success: false,
           message: "Payment reference is required",
         };
       }
+
+      console.log("[PaymentService] Starting verification for reference:", reference);
 
       const response = await apiGet<{
         reference: string;
@@ -197,7 +200,23 @@ class PaymentService {
         { requiresAuth: true }
       );
 
+      console.log("[PaymentService] Full API Response:", {
+        success: response.success,
+        message: response.message,
+        data: response.data,
+        error: response.error,
+        errors: response.errors,
+        status: response.status,
+        rawResponse: response
+      });
+
       if (response.success && response.data) {
+        console.log("[PaymentService] ✅ Verification SUCCESS:", {
+          reference: response.data.reference,
+          amount: response.data.amount,
+          status: response.data.status,
+          paid_at: response.data.paid_at,
+        });
         return {
           success: true,
           data: response.data,
@@ -205,12 +224,25 @@ class PaymentService {
         };
       }
 
+      console.error("[PaymentService] ❌ Verification FAILED:", {
+        success: response.success,
+        message: response.message,
+        error: response.error,
+        errors: response.errors,
+      });
+
       return {
         success: false,
         message: response.message || "Payment verification failed",
       };
     } catch (error: any) {
-      console.error("[PaymentService] Payment verification error:", error);
+      console.error("[PaymentService] ❌ Payment verification error - Exception:", {
+        message: error?.message,
+        code: error?.code,
+        status: error?.status,
+        response: error?.response?.data,
+        fullError: error,
+      });
       return {
         success: false,
         message:
