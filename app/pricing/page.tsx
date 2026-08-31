@@ -288,7 +288,6 @@ export default function PricingPage() {
             </motion.div>
           </Container>
         </motion.section>
-
         {/* CTA */}
         <motion.section
           className="py-20 md:py-32 bg-gradient-to-br from-primary/10 to-accent/10"
