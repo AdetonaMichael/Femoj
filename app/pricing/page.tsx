@@ -295,6 +295,7 @@ export default function PricingPage() {
           initial="hidden"
           animate="show"
         >
+          
           <Container>
             <motion.div
               className="text-center max-w-2xl mx-auto"
