@@ -1,513 +1,554 @@
 "use client";
 
-import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { MOCK_WALLET, MOCK_TRANSACTIONS } from "@/mock/data";
-import { motion, AnimatePresence } from "framer-motion";
+import { useWallet } from "@/hooks/useWallet";
+import { motion } from "framer-motion";
+import { formatCurrency, formatDate } from "@/utils";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
+  Wallet,
+  CreditCard,
   ArrowUpRight,
   ArrowDownLeft,
-  Plus,
-  Minus,
-  Eye,
-  EyeOff,
-  Download,
-  CreditCard,
+  Check,
   ChevronRight,
+  Loader2,
+  AlertCircle,
+  Package,
+  Shield,
+  Clock,
+  Gift,
+  History,
+  Zap,
+  Building2,
+  Globe,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { fundWalletSchema, withdrawalSchema } from "@/schemas";
-import { toast } from "sonner";
-import { formatCurrency, formatDate } from "@/utils";
 
-/* ─── Types ───────────────────────────────────────────────────────────────── */
-interface FundFormValues {
-  amount: number;
-  paymentMethod: string;
-}
-
-interface WithdrawFormValues {
-  amount: number;
-  bankAccount: string;
-}
-
-type TxnType = "credit" | "debit";
-type TxnStatus = "completed" | "pending" | "failed";
-
-interface Transaction {
-  id: string;
-  type: TxnType;
-  description: string;
-  amount: number;
-  status: TxnStatus;
-  createdAt: string | Date;
-}
-
-interface Wallet {
-  balance: number;
-  availableCredit: number;
-  pendingBalance: number;
-  lastUpdated: string | Date;
-}
-
-/* ─── Animation ───────────────────────────────────────────────────────────── */
+/* ─── Animation variants ──────────────────────────────────────────────────── */
 const fadeUp = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.25, delay: i * 0.06 },
+    transition: { duration: 0.3, delay: i * 0.06 },
   }),
 };
 
-const panelAnim = {
-  hidden: { opacity: 0, y: 6 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-  exit: { opacity: 0, y: -4, transition: { duration: 0.15 } },
-};
+/* ─── Shared styles ───────────────────────────────────────────────────────── */
+const iconWrap =
+  "flex h-9 w-9 items-center justify-center rounded-md bg-[#e8f0fe] shrink-0";
 
-/* ─── Shared field styles ─────────────────────────────────────────────────── */
-const fieldLabel =
-  "block text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-1.5";
+type PaymentProvider = "paystack" | "international";
 
-const inputBase =
-  "w-full h-9 px-3 text-sm rounded-md border border-[#dadce0] bg-white text-[#202124] placeholder:text-[#9aa0a6] focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors";
-
-const selectBase =
-  "w-full h-9 px-3 text-sm rounded-md border border-[#dadce0] bg-white text-[#202124] focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors";
-
-/* ─── Component ───────────────────────────────────────────────────────────── */
 export default function WalletPage() {
-  const wallet = MOCK_WALLET as Wallet;
-  const transactions = MOCK_TRANSACTIONS as Transaction[];
+  const [selectedBundle, setSelectedBundle] = useState<number | null>(null);
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>("paystack");
+  const [showPurchaseFlow, setShowPurchaseFlow] = useState(false);
 
-  const [showBalance, setShowBalance] = useState(true);
-  const [activeTab, setActiveTab] = useState<"fund" | "withdraw">("fund");
+  const {
+    balance,
+    transactions,
+    bundles,
+    isLoading,
+    balanceLoading,
+    transactionsLoading,
+    initializePurchase,
+    isInitializing,
+    error: walletError,
+  } = useWallet();
 
-  const fundForm = useForm<FundFormValues>({
-    resolver: zodResolver(fundWalletSchema),
-    defaultValues: { amount: 50, paymentMethod: "card" },
-  });
-
-  const withdrawForm = useForm<WithdrawFormValues>({
-    resolver: zodResolver(withdrawalSchema),
-    defaultValues: { amount: 10, bankAccount: "" },
-  });
-
-  const onFund = async (data: FundFormValues) => {
-    toast.success(`Wallet funded with ${formatCurrency(data.amount)}`);
-    fundForm.reset();
+  const handleSelectBundle = (bundleId: number) => {
+    setSelectedBundle(bundleId);
+    setShowPurchaseFlow(true);
   };
 
-  const onWithdraw = async (data: WithdrawFormValues) => {
-    toast.success(`Withdrawal requested for ${formatCurrency(data.amount)}`);
-    withdrawForm.reset();
+  const handleProceedToPayment = () => {
+    if (!selectedBundle) {
+      toast.error("Please select a credit bundle");
+      return;
+    }
+    initializePurchase(selectedBundle, paymentProvider);
   };
 
-  const fundAmount = fundForm.watch("amount") || 0;
-  const withdrawAmount = withdrawForm.watch("amount") || 0;
+  const handleGoBack = () => {
+    setShowPurchaseFlow(false);
+    setSelectedBundle(null);
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div
+          className="min-h-screen bg-white flex items-center justify-center"
+          style={{ fontFamily: "'Google Sans', 'Roboto', sans-serif" }}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-6 h-6 text-[#1a73e8] animate-spin" />
+            <p className="text-sm text-[#5f6368]">Loading wallet...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div
-        className="min-h-screen bg-white space-y-6"
+        className="min-h-screen bg-white"
         style={{ fontFamily: "'Google Sans', 'Roboto', sans-serif" }}
       >
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <motion.div variants={fadeUp} custom={0} initial="hidden" animate="show">
+        <motion.div
+          className="mb-8"
+          variants={fadeUp}
+          custom={0}
+          initial="hidden"
+          animate="show"
+        >
           <h1 className="text-[22px] font-medium text-[#202124] tracking-tight">
             Wallet
           </h1>
           <p className="mt-1 text-sm text-[#5f6368]">
-            Manage your balance and transactions.
+            Purchase credits to use across the platform
           </p>
         </motion.div>
 
-        {/* ── Balance + meta cards ─────────────────────────────────────────── */}
+        {/* ── Balance card ────────────────────────────────────────────────── */}
         <motion.div
+          className="mb-8"
           variants={fadeUp}
           custom={1}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4"
         >
-          {/* Main balance card */}
-          <div className="lg:col-span-2 rounded-lg border border-[#e8eaed] bg-white p-5">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-[#5f6368] uppercase tracking-wide">
-                Available Balance
-              </span>
-              <button
-                onClick={() => setShowBalance((v) => !v)}
-                className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[#f1f3f4] transition-colors text-[#5f6368]"
-                aria-label="Toggle balance visibility"
-              >
-                {showBalance ? (
-                  <Eye className="w-4 h-4" />
-                ) : (
-                  <EyeOff className="w-4 h-4" />
-                )}
-              </button>
+          <div className="rounded-lg border border-[#e8eaed] bg-white p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide">
+                  Credit Balance
+                </p>
+                <p className="text-[36px] font-semibold text-[#202124] leading-tight mt-1">
+                  {balance?.balance?.toLocaleString() ?? "0"}
+                </p>
+                <p className="text-sm text-[#5f6368] mt-1">
+                  {formatCurrency(balance?.balance ?? 0)} available
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f0fe]">
+                <Wallet className="w-6 h-6 text-[#1a73e8]" />
+              </div>
             </div>
 
-            <p className="text-[40px] font-semibold text-[#202124] leading-none mt-3 mb-6 tabular-nums">
-              {showBalance ? formatCurrency(wallet.balance) : "••••••"}
-            </p>
-
-            <div className="flex flex-wrap gap-6">
-              <div>
-                <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                  Available Credit
+            {/* DVA Details */}
+            {balance?.dva_details && (
+              <div className="mt-4 pt-4 border-t border-[#e8eaed]">
+                <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-2">
+                  Fund via Bank Transfer
                 </p>
-                <p className="text-base font-medium text-[#202124] tabular-nums">
-                  {formatCurrency(wallet.availableCredit)}
-                </p>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-[#f8f9fa]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white border border-[#e8eaed]">
+                    <Building2 className="w-4 h-4 text-[#5f6368]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#202124]">
+                      {balance.dva_details.account_number}
+                    </p>
+                    <p className="text-xs text-[#5f6368]">
+                      {balance.dva_details.bank_name} — {balance.dva_details.account_name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(balance.dva_details!.account_number);
+                      toast.success("Account number copied!");
+                    }}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-[#1a73e8] hover:bg-white rounded-md border border-[#e8eaed] transition-colors"
+                  >
+                    <Check className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                  Pending
-                </p>
-                <p className="text-base font-medium text-[#202124] tabular-nums">
-                  {formatCurrency(wallet.pendingBalance)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                  Last Updated
-                </p>
-                <p className="text-base font-medium text-[#202124]">
-                  {formatDate(wallet.lastUpdated)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick action cards */}
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => setActiveTab("fund")}
-              className={`flex items-center gap-3 px-4 py-4 rounded-lg border transition-all text-left ${
-                activeTab === "fund"
-                  ? "border-[#1a73e8] bg-[#e8f0fe]"
-                  : "border-[#e8eaed] bg-white hover:shadow-[0_1px_6px_rgba(32,33,36,.18)]"
-              }`}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#e8f0fe]">
-                <Plus className="w-4 h-4 text-[#1a73e8]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#202124]">
-                  Fund Wallet
-                </p>
-                <p className="text-xs text-[#5f6368]">Add money to your account</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[#5f6368] shrink-0" />
-            </button>
-
-            <button
-              onClick={() => setActiveTab("withdraw")}
-              className={`flex items-center gap-3 px-4 py-4 rounded-lg border transition-all text-left ${
-                activeTab === "withdraw"
-                  ? "border-[#1a73e8] bg-[#e8f0fe]"
-                  : "border-[#e8eaed] bg-white hover:shadow-[0_1px_6px_rgba(32,33,36,.18)]"
-              }`}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#fce8e6]">
-                <Minus className="w-4 h-4 text-[#c5221f]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#202124]">
-                  Withdraw Funds
-                </p>
-                <p className="text-xs text-[#5f6368]">Cash out your balance</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[#5f6368] shrink-0" />
-            </button>
+            )}
           </div>
         </motion.div>
 
-        {/* ── Fund / Withdraw form ─────────────────────────────────────────── */}
-        <AnimatePresence mode="wait">
-          {activeTab === "fund" && (
-            <motion.div
-              key="fund"
-              variants={panelAnim}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-            >
-              <div className="rounded-lg border border-[#e8eaed] bg-white">
-                <div className="px-5 py-4 border-b border-[#e8eaed]">
-                  <p className="text-sm font-medium text-[#202124]">
-                    Fund Your Wallet
+        {/* ── Error state ─────────────────────────────────────────────────── */}
+        {walletError && (
+          <motion.div
+            variants={fadeUp}
+            custom={2}
+            initial="hidden"
+            animate="show"
+            className="mb-8"
+          >
+            <div className="rounded-lg border border-[#fce8e6] bg-[#fce8e6]/50 p-5">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-[#c5221f] shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-[#c5221f]">
+                    Unable to load wallet data
                   </p>
                   <p className="text-xs text-[#5f6368] mt-0.5">
-                    Add funds using your preferred payment method
+                    Please try refreshing the page.
                   </p>
                 </div>
-                <div className="px-5 py-5">
-                  <form
-                    onSubmit={fundForm.handleSubmit(onFund)}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-5"
-                  >
-                    {/* Amount */}
-                    <div>
-                      <label className={fieldLabel}>Amount</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#5f6368]">
-                          $
-                        </span>
-                        <input
-                          type="number"
-                          placeholder="50.00"
-                          className={`${inputBase} pl-7`}
-                          {...fundForm.register("amount", { valueAsNumber: true })}
-                        />
-                      </div>
-                      {fundForm.formState.errors.amount && (
-                        <p className="text-xs text-[#c5221f] mt-1">
-                          {fundForm.formState.errors.amount.message as string}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Payment method */}
-                    <div>
-                      <label className={fieldLabel}>Payment Method</label>
-                      <select
-                        className={selectBase}
-                        {...fundForm.register("paymentMethod")}
-                      >
-                        <option value="card">Debit / Credit Card</option>
-                        <option value="bank">Bank Transfer</option>
-                        <option value="paypal">PayPal</option>
-                        <option value="crypto">Cryptocurrency</option>
-                      </select>
-                    </div>
-
-                    {/* Fee summary */}
-                    <div className="md:col-span-2 rounded-md bg-[#f8f9fa] border border-[#e8eaed] px-4 py-3 flex flex-wrap gap-6">
-                      <div>
-                        <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                          Processing Fee
-                        </p>
-                        <p className="text-sm font-medium text-[#202124]">
-                          2.5% + $0.30
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                          Total to Pay
-                        </p>
-                        <p className="text-sm font-semibold text-[#202124] tabular-nums">
-                          {formatCurrency(fundAmount * 1.025 + 0.3)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Submit */}
-                    <div className="md:col-span-2">
-                      <button
-                        type="submit"
-                        className="h-9 px-6 text-sm font-medium rounded-md bg-[#1a73e8] hover:bg-[#1765cc] text-white transition-colors disabled:opacity-50"
-                        disabled={fundForm.formState.isSubmitting}
-                      >
-                        Proceed to Payment
-                      </button>
-                    </div>
-                  </form>
-                </div>
               </div>
-            </motion.div>
-          )}
-
-          {activeTab === "withdraw" && (
-            <motion.div
-              key="withdraw"
-              variants={panelAnim}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-            >
-              <div className="rounded-lg border border-[#e8eaed] bg-white">
-                <div className="px-5 py-4 border-b border-[#e8eaed]">
-                  <p className="text-sm font-medium text-[#202124]">
-                    Withdraw Funds
-                  </p>
-                  <p className="text-xs text-[#5f6368] mt-0.5">
-                    Transfer your balance to a bank account
-                  </p>
-                </div>
-                <div className="px-5 py-5">
-                  <form
-                    onSubmit={withdrawForm.handleSubmit(onWithdraw)}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-5"
-                  >
-                    {/* Amount */}
-                    <div>
-                      <label className={fieldLabel}>Amount</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#5f6368]">
-                          $
-                        </span>
-                        <input
-                          type="number"
-                          placeholder="10.00"
-                          className={`${inputBase} pl-7`}
-                          {...withdrawForm.register("amount", { valueAsNumber: true })}
-                        />
-                      </div>
-                      {withdrawForm.formState.errors.amount && (
-                        <p className="text-xs text-[#c5221f] mt-1">
-                          {withdrawForm.formState.errors.amount.message as string}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Bank account */}
-                    <div>
-                      <label className={fieldLabel}>Bank Account</label>
-                      <select
-                        className={selectBase}
-                        {...withdrawForm.register("bankAccount")}
-                      >
-                        <option value="">Select account</option>
-                        <option value="acc1">••••7890 — Main Account</option>
-                        <option value="acc2">••••5432 — Savings Account</option>
-                      </select>
-                      {withdrawForm.formState.errors.bankAccount && (
-                        <p className="text-xs text-[#c5221f] mt-1">
-                          {withdrawForm.formState.errors.bankAccount.message as string}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Summary */}
-                    <div className="md:col-span-2 rounded-md bg-[#f8f9fa] border border-[#e8eaed] px-4 py-3 flex flex-wrap gap-6">
-                      <div>
-                        <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                          Processing Time
-                        </p>
-                        <p className="text-sm font-medium text-[#202124]">
-                          1–3 business days
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#5f6368] uppercase tracking-wide mb-0.5">
-                          You'll Receive
-                        </p>
-                        <p className="text-sm font-semibold text-[#202124] tabular-nums">
-                          {formatCurrency(withdrawAmount * 0.975)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Submit */}
-                    <div className="md:col-span-2">
-                      <button
-                        type="submit"
-                        className="h-9 px-6 text-sm font-medium rounded-md bg-[#1a73e8] hover:bg-[#1765cc] text-white transition-colors disabled:opacity-50"
-                        disabled={withdrawForm.formState.isSubmitting}
-                      >
-                        Request Withdrawal
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Transaction history ──────────────────────────────────────────── */}
-        <motion.div variants={fadeUp} custom={3} initial="hidden" animate="show">
-          <div className="rounded-lg border border-[#e8eaed] bg-white">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed]">
-              <div>
-                <p className="text-sm font-medium text-[#202124]">
-                  Transaction History
-                </p>
-                <p className="text-xs text-[#5f6368] mt-0.5">
-                  All wallet activity
-                </p>
-              </div>
-              <button className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded border border-[#dadce0] text-[#1a73e8] hover:bg-[#f6fafe] transition-colors">
-                <Download className="w-3.5 h-3.5" />
-                Export
-              </button>
             </div>
+          </motion.div>
+        )}
 
-            {/* Table column headers */}
-            <div className="hidden md:grid grid-cols-[1fr_140px_110px_80px] gap-4 px-5 py-2.5 border-b border-[#e8eaed]">
-              {["Description", "Date", "Amount", "Status"].map((h) => (
-                <span
-                  key={h}
-                  className="text-[11px] font-medium text-[#5f6368] uppercase tracking-wide"
+        {/* ── Purchase flow ────────────────────────────────────────────────── */}
+        {!showPurchaseFlow ? (
+          /* Credit Bundles Selection */
+          <motion.div
+            variants={fadeUp}
+            custom={3}
+            initial="hidden"
+            animate="show"
+            className="mb-8"
+          >
+            <div className="rounded-lg border border-[#e8eaed] bg-white p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={iconWrap}>
+                  <Package className="w-4 h-4 text-[#1a73e8]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#202124]">
+                    Purchase Credits
+                  </p>
+                  <p className="text-xs text-[#5f6368]">
+                    Select a credit bundle to get started
+                  </p>
+                </div>
+              </div>
+
+              {bundles && bundles.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {bundles.map((bundle) => (
+                    <button
+                      key={bundle.id}
+                      onClick={() => handleSelectBundle(bundle.id)}
+                      className="flex flex-col items-center p-4 rounded-lg border border-[#e8eaed] hover:border-[#1a73e8] hover:bg-[#f6fafe] transition-all text-left group"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f0fe] group-hover:bg-[#d2e3fc] transition-colors mb-3">
+                        <Zap className="w-5 h-5 text-[#1a73e8]" />
+                      </div>
+                      <p className="text-[22px] font-semibold text-[#202124] leading-none">
+                        {bundle.credits.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-[#5f6368] mt-1">credits</p>
+                      <p className="text-sm font-medium text-[#1a73e8] mt-2">
+                        {formatCurrency(bundle.price)}
+                      </p>
+                      {bundle.description && (
+                        <p className="text-[11px] text-[#9aa0a6] mt-1 text-center">
+                          {bundle.description}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 border border-dashed border-[#dadce0] rounded-lg">
+                  <Package className="w-8 h-8 text-[#dadce0] mx-auto mb-2" />
+                  <p className="text-sm text-[#5f6368]">
+                    No credit bundles available at the moment.
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          /* Payment Provider Selection & Review */
+          <motion.div
+            variants={fadeUp}
+            custom={3}
+            initial="hidden"
+            animate="show"
+            className="mb-8"
+          >
+            <div className="rounded-lg border border-[#e8eaed] bg-white p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={iconWrap}>
+                  <CreditCard className="w-4 h-4 text-[#1a73e8]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#202124]">
+                    Checkout
+                  </p>
+                  <p className="text-xs text-[#5f6368]">
+                    Select payment method and review your order
+                  </p>
+                </div>
+              </div>
+
+              {/* Selected bundle summary */}
+              {selectedBundle && bundles && (
+                <div className="p-4 rounded-lg bg-[#f8f9fa] border border-[#e8eaed] mb-5">
+                  {(() => {
+                    const bundle = bundles.find((b) => b.id === selectedBundle);
+                    if (!bundle) return null;
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f0fe]">
+                            <Zap className="w-5 h-5 text-[#1a73e8]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-[#202124]">
+                              {bundle.name} Bundle
+                            </p>
+                            <p className="text-xs text-[#5f6368]">
+                              {bundle.credits.toLocaleString()} credits
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-lg font-semibold text-[#202124]">
+                          {formatCurrency(bundle.price)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Payment provider selection */}
+              <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-3">
+                Payment Method
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+                <button
+                  onClick={() => setPaymentProvider("paystack")}
+                  className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                    paymentProvider === "paystack"
+                      ? "border-[#1a73e8] bg-[#f6fafe]"
+                      : "border-[#e8eaed] hover:border-[#dadce0] hover:bg-[#f8f9fa]"
+                  }`}
                 >
-                  {h}
-                </span>
-              ))}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#00b4d8]/10">
+                    <Building2 className="w-5 h-5 text-[#00b4d8]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-[#202124]">
+                      Local Payment
+                    </p>
+                    <p className="text-xs text-[#5f6368]">
+                      Paystack — Card, Bank Transfer, USSD
+                    </p>
+                  </div>
+                  {paymentProvider === "paystack" && (
+                    <Check className="w-5 h-5 text-[#1a73e8] ml-auto shrink-0" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setPaymentProvider("international")}
+                  className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                    paymentProvider === "international"
+                      ? "border-[#1a73e8] bg-[#f6fafe]"
+                      : "border-[#e8eaed] hover:border-[#dadce0] hover:bg-[#f8f9fa]"
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#7c3aed]/10">
+                    <Globe className="w-5 h-5 text-[#7c3aed]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-[#202124]">
+                      International Payment
+                    </p>
+                    <p className="text-xs text-[#5f6368]">
+                      Card payments worldwide
+                    </p>
+                  </div>
+                  {paymentProvider === "international" && (
+                    <Check className="w-5 h-5 text-[#1a73e8] ml-auto shrink-0" />
+                  )}
+                </button>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleGoBack}
+                  className="h-10 px-4 text-sm font-medium text-[#5f6368] border border-[#dadce0] rounded-md hover:bg-[#f8f9fa] transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleProceedToPayment}
+                  disabled={isInitializing || !selectedBundle}
+                  className="flex-1 h-10 px-4 text-sm font-medium text-white bg-[#1a73e8] hover:bg-[#1765cc] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                >
+                  {isInitializing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Proceed to Payment
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 text-xs text-[#9aa0a6]">
+                <Shield className="w-3.5 h-3.5" />
+                <span>Secure payment powered by Paystack</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── How it works ────────────────────────────────────────────────── */}
+        {!showPurchaseFlow && (
+          <motion.div
+            variants={fadeUp}
+            custom={4}
+            initial="hidden"
+            animate="show"
+            className="mb-8"
+          >
+            <div className="rounded-lg border border-[#e8eaed] bg-white p-5">
+              <p className="text-sm font-medium text-[#202124] mb-4">
+                How It Works
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    step: "1",
+                    title: "Choose a bundle",
+                    desc: "Select the credit package that suits your needs",
+                    icon: Package,
+                  },
+                  {
+                    step: "2",
+                    title: "Pay securely",
+                    desc: "Complete payment via Paystack (card, bank, USSD)",
+                    icon: Shield,
+                  },
+                  {
+                    step: "3",
+                    title: "Start using credits",
+                    desc: "Your credits are available instantly for all services",
+                    icon: Zap,
+                  },
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 p-4 rounded-lg border border-[#e8eaed]"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e8f0fe] shrink-0">
+                        <Icon className="w-4 h-4 text-[#1a73e8]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#202124]">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-[#5f6368] mt-0.5">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Transaction history ─────────────────────────────────────────── */}
+        <motion.div
+          variants={fadeUp}
+          custom={5}
+          initial="hidden"
+          animate="show"
+        >
+          <div className="rounded-lg border border-[#e8eaed] bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={iconWrap}>
+                  <History className="w-4 h-4 text-[#1a73e8]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#202124]">
+                    Transaction History
+                  </p>
+                  <p className="text-xs text-[#5f6368]">
+                    Recent wallet activity
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="divide-y divide-[#f1f3f4]">
-              {transactions.map((txn) => {
-                const isCredit = txn.type === "credit";
-                return (
-                  <div
-                    key={txn.id}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_140px_110px_80px] gap-2 md:gap-4 items-center px-5 py-3.5 hover:bg-[#f8f9fa] transition-colors"
-                  >
-                    {/* Description */}
-                    <div className="flex items-center gap-3">
+            {transactionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 text-[#1a73e8] animate-spin" />
+              </div>
+            ) : transactions && transactions.length > 0 ? (
+              <div className="space-y-2">
+                {transactions.map((txn) => {
+                  const isCredit = txn.type === "credit";
+                  return (
+                    <div
+                      key={txn.id}
+                      className="flex items-center gap-4 px-4 py-3 rounded-md border border-[#e8eaed] hover:bg-[#f8f9fa] transition-colors"
+                    >
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${
                           isCredit ? "bg-[#e6f4ea]" : "bg-[#fce8e6]"
                         }`}
                       >
                         {isCredit ? (
-                          <ArrowDownLeft className="w-3.5 h-3.5 text-[#137333]" />
+                          <ArrowDownLeft className="w-4 h-4 text-[#137333]" />
                         ) : (
-                          <ArrowUpRight className="w-3.5 h-3.5 text-[#c5221f]" />
+                          <ArrowUpRight className="w-4 h-4 text-[#c5221f]" />
                         )}
                       </div>
-                      <span className="text-sm text-[#202124]">
-                        {txn.description}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#202124] truncate">
+                          {txn.description}
+                        </p>
+                        <p className="text-xs text-[#5f6368]">
+                          {formatDate(txn.created_at)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p
+                          className={`text-sm font-medium tabular-nums ${
+                            isCredit ? "text-[#137333]" : "text-[#c5221f]"
+                          }`}
+                        >
+                          {isCredit ? "+" : "−"}
+                          {txn.amount.toLocaleString()}
+                        </p>
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            txn.type === "credit"
+                              ? "bg-[#e6f4ea] text-[#137333]"
+                              : "bg-[#fce8e6] text-[#c5221f]"
+                          }`}
+                        >
+                          {txn.type === "credit" ? "Credit" : "Debit"}
+                        </span>
+                      </div>
                     </div>
-
-                    {/* Date */}
-                    <span className="text-sm text-[#5f6368]">
-                      {formatDate(txn.createdAt)}
-                    </span>
-
-                    {/* Amount */}
-                    <span
-                      className={`text-sm font-medium tabular-nums ${
-                        isCredit ? "text-[#137333]" : "text-[#c5221f]"
-                      }`}
-                    >
-                      {isCredit ? "+" : "−"}
-                      {formatCurrency(txn.amount)}
-                    </span>
-
-                    {/* Status */}
-                    <span
-                      className={`inline-flex w-fit items-center px-2 py-0.5 rounded text-[11px] font-medium ${
-                        txn.status === "completed"
-                          ? "bg-[#e6f4ea] text-[#137333]"
-                          : txn.status === "pending"
-                          ? "bg-[#fef7e0] text-[#b06000]"
-                          : "bg-[#fce8e6] text-[#c5221f]"
-                      }`}
-                    >
-                      {txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 border border-dashed border-[#dadce0] rounded-lg">
+                <Clock className="w-8 h-8 text-[#dadce0] mx-auto mb-2" />
+                <p className="text-sm text-[#5f6368]">
+                  No transactions yet. Purchase credits to get started!
+                </p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

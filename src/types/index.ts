@@ -416,7 +416,6 @@ export type {
   PaymentState,
   UsePaymentReturn,
   WalletTransaction,
-  WalletBalance,
   PaystackTransaction,
   PaymentCallbackParams,
   PaymentServiceResult,
@@ -429,24 +428,67 @@ export type {
   PaymentConfig,
 } from "./payment";
 
-// Referral Types
-export interface Referral {
-  id: string;
-  referrerId: string;
-  refereeId: string;
-  commissionRate: number;
-  earnedAmount: number;
-  status: "active" | "inactive";
-  createdAt: Date;
+// Referral Types (matching backend API responses)
+export interface ReferralLink {
+  code: string;
+  link: string;
+  program: string;
+  created_at: string;
+}
+
+export interface ReferredUser {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  created_at: string;
+}
+
+export interface ReferralEntry {
+  referral_id: number;
+  user: ReferredUser;
+  referral_code: string;
+  program: string;
+  referred_at: string;
 }
 
 export interface ReferralStats {
-  totalReferrals: number;
-  activeReferrals: number;
-  totalEarnings: number;
-  monthlyEarnings: number;
-  commissionRate: number;
-  pendingPayout: number;
+  total_referrals: number;
+  active_referrals: number;
+  fully_qualified_referrals: number;
+  total_earnings: number;
+  pending_rewards: number;
+  available_balance: number;
+}
+
+export interface MilestoneDetail {
+  completed: boolean;
+  completed_at: string | null;
+}
+
+export interface ReferralMilestone {
+  milestone_id: number;
+  referred_user: ReferredUser;
+  referral_code: string;
+  program: string;
+  progress_percentage: number;
+  milestones: {
+    email_verified: MilestoneDetail;
+    phone_verified: MilestoneDetail;
+    wallet_funded_100: MilestoneDetail;
+    first_transaction: MilestoneDetail;
+  };
+  is_fully_qualified: boolean;
+  payout_earned: number;
+  payout_paid_at: string | null;
+  status: string;
+}
+
+export interface ReferralProgram {
+  id: number;
+  name: string;
+  url: string;
+  lifetime_minutes: number;
 }
 
 // Dashboard Analytics Types
@@ -542,4 +584,190 @@ export interface ToastPayload {
   type: "success" | "error" | "info" | "warning";
   message: string;
   duration?: number;
+}
+
+// Wallet Types (matching backend API responses)
+export interface WalletBalance {
+  balance: number;
+  formatted_balance: string;
+  can_withdraw: boolean;
+  is_verified: boolean;
+  pin_locked: boolean;
+  has_pin: boolean;
+  dva_details: {
+    account_number: string;
+    account_name: string;
+    bank_name: string;
+    bank_slug: string;
+    account_active: boolean;
+  } | null;
+  funding_method: string;
+}
+
+export interface WalletTransactionItem {
+  id: number;
+  type: "credit" | "debit";
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  description: string;
+  reference: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface WalletTransactionsResponse {
+  data: WalletTransactionItem[];
+  transactions: WalletTransactionItem[];
+  pagination: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+// Credit Bundle Types
+export interface CreditBundle {
+  id: number;
+  name: string;
+  credits: number;
+  price: number;
+  currency: string;
+  description: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreditBundlePurchaseResponse {
+  authorization_url: string;
+  reference: string;
+  access_code: string;
+  amount: number;
+  credits: number;
+  bundle: {
+    id: number;
+    name: string;
+    credits: number;
+    price: number;
+  };
+}
+
+export interface CreditBundleVerifyResponse {
+  reference: string;
+  status: string;
+  amount: number;
+  credits_added: number;
+  new_balance: number;
+  bundle: {
+    id: number;
+    name: string;
+    credits: number;
+  };
+}
+
+export interface CreditPurchaseHistoryItem {
+  id: number;
+  amount: number;
+  status: string;
+  reference: string;
+  credits: number;
+  bundle_name: string;
+  created_at: string;
+}
+
+/**
+ * Virtual Number Types
+ */
+export interface VNCountry {
+  id: number;
+  name: string;
+  code: string;
+  dial_code: string;
+  flag_emoji: string;
+  pivot?: {
+    activation_price: number;
+    rent_price_30d: number;
+    is_active: boolean;
+  };
+}
+
+export interface VNService {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string;
+  category: string;
+}
+
+export interface VNPricing {
+  activation_price: number;
+  rent_price_30d: number;
+  currency: string;
+}
+
+export interface VirtualNumberItem {
+  id: number;
+  number: string;
+  service: {
+    id: number;
+    name: string;
+    slug: string;
+    icon: string;
+  };
+  country: {
+    id: number;
+    name: string;
+    code: string;
+    flag_emoji: string;
+  };
+  type: "activation" | "rent";
+  status: "active" | "expired" | "released";
+  price: number;
+  expires_at: string | null;
+  time_remaining: string | null;
+  sms_count: number;
+  unread_sms: number;
+  last_sms_at: string | null;
+  created_at: string;
+}
+
+export interface VNDetail extends VirtualNumberItem {
+  messages: VNSmsMessage[];
+}
+
+export interface VNSmsMessage {
+  id: number;
+  from: string | null;
+  content: string;
+  status: "received" | "read" | "expired";
+  received_at: string;
+}
+
+export interface VNOrderPayload {
+  service_id: number;
+  country_id: number;
+  type: "activation" | "rent";
+}
+
+export interface VNOrderResponse {
+  id: number;
+  number: string;
+  service: { id: number; name: string; slug: string };
+  country: { id: number; name: string; code: string; flag_emoji: string };
+  type: string;
+  price: number;
+  expires_at: string;
+  time_remaining: string;
+  new_balance: number;
+  reference: string;
+}
+
+export interface VNStats {
+  active_numbers: number;
+  total_numbers: number;
+  total_sms: number;
+  total_spent: number;
 }

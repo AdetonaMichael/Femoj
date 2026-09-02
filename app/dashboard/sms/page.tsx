@@ -1,361 +1,237 @@
 "use client";
 
-import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { MOCK_SMS_CONVERSATIONS, MOCK_SMS_MESSAGES } from "@/mock/data";
-import { motion, AnimatePresence } from "framer-motion";
+import { useVirtualNumbers } from "@/hooks/useVirtualNumbers";
+import { motion } from "framer-motion";
+import { useState } from "react";
+import Link from "next/link";
 import {
-  Search,
-  Send,
-  Phone,
   MessageSquare,
-  ChevronLeft,
-  Archive,
-  Trash2,
-  MoreVertical,
-  CheckCheck,
+  Search,
+  ChevronRight,
+  Copy,
+  Check,
+  Clock,
+  Inbox,
+  Smartphone,
+  RefreshCw,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { sendSMSSchema } from "@/schemas";
 import { toast } from "sonner";
-import { formatDate } from "@/utils";
-import type { SMSConversation, SMSMessage } from "@/types";
+import { formatDistanceToNow } from "date-fns";
 
-/* ─── Types ───────────────────────────────────────────────────────────────── */
-interface SendSMSFormValues {
-  message: string;
-}
-
-/* ─── Animation ───────────────────────────────────────────────────────────── */
-const fadeIn = {
-  hidden: { opacity: 0, y: 6 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, delay: i * 0.06 },
+  }),
 };
 
-const msgIn = (direction: "inbound" | "outbound") => ({
-  hidden: { opacity: 0, x: direction === "inbound" ? -8 : 8 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.18 } },
-});
+export default function SmsPage() {
+  const { numbers, numbersLoading } = useVirtualNumbers();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
-/* ─── Helpers ─────────────────────────────────────────────────────────────── */
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
+  // Flatten numbers with their latest SMS for inbox view
+  const numbersWithSms = (numbers || [])
+    .filter((n) => {
+      const matchesSearch =
+        n.number.includes(searchQuery) ||
+        n.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        n.country.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      if (a.last_sms_at && b.last_sms_at) {
+        return new Date(b.last_sms_at).getTime() - new Date(a.last_sms_at).getTime();
+      }
+      if (a.last_sms_at) return -1;
+      if (b.last_sms_at) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-/* ─── Component ───────────────────────────────────────────────────────────── */
-export default function SMSPage() {
-  const conversations = MOCK_SMS_CONVERSATIONS as SMSConversation[];
-  const allMessages = MOCK_SMS_MESSAGES as SMSMessage[];
-
-  const [selected, setSelected] = useState<SMSConversation | null>(
-    conversations[0] ?? null
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
-
-  const form = useForm<SendSMSFormValues>({
-    resolver: zodResolver(sendSMSSchema),
-    defaultValues: { message: "" },
-  });
-
-  const onSubmit = async (_data: SendSMSFormValues) => {
-    try {
-      toast.success("Message sent");
-      form.reset();
-    } catch {
-      toast.error("Failed to send message");
-    }
+  const copyToClipboard = (text: string, id: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success("Number copied!");
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const filteredConvs = conversations.filter(
-    (c) =>
-      c.phoneNumber.includes(searchTerm) ||
-      c.senderName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const activeMessages = allMessages.filter(
-    (m) => m.conversationId === selected?.id
-  );
-
-  const selectConversation = (conv: SMSConversation) => {
-    setSelected(conv);
-    setMobileView("chat");
+  const SERVICE_ICONS: Record<string, string> = {
+    whatsapp: "/whatsapp.png", telegram: "/telegram.png", instagram: "/google.png", twitter: "/google.png",
+    facebook: "/meta.png", tiktok: "/tiktok.png", snapchat: "/snapchat.png", tinder: "/google.png",
+    discord: "/discord.png", signal: "/google.png", other: "",
   };
 
   return (
     <DashboardLayout>
       <div
-        className="flex flex-col bg-white"
-        style={{
-          fontFamily: "'Google Sans', 'Roboto', sans-serif",
-          height: "calc(100vh - 64px)", // adjust to your shell's header height
-        }}
+        className="min-h-screen bg-[#f8f9fa]"
+        style={{ fontFamily: "'Google Sans', 'Roboto', sans-serif" }}
       >
-        {/* ── Page title bar (visible only on mobile) ────────────────────── */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#e8eaed]">
-          {mobileView === "chat" && selected ? (
-            <button
-              onClick={() => setMobileView("list")}
-              className="flex items-center gap-1.5 text-sm text-[#1a73e8] font-medium"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </button>
-          ) : (
-            <h1 className="text-[17px] font-medium text-[#202124]">
-              SMS Center
-            </h1>
-          )}
-        </div>
+        {/* Header */}
+        <motion.div
+          className="mb-6"
+          variants={fadeUp}
+          custom={0}
+          initial="hidden"
+          animate="show"
+        >
+          <h1 className="text-[22px] font-medium text-[#202124] mb-1">
+            SMS Inbox
+          </h1>
+          <p className="text-sm text-[#5f6368]">
+            View verification codes for all your virtual numbers
+          </p>
+        </motion.div>
 
-        {/* ── Main layout ─────────────────────────────────────────────────── */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* ── Sidebar ───────────────────────────────────────────────────── */}
-          <aside
-            className={`
-              ${mobileView === "chat" ? "hidden" : "flex"} md:flex
-              flex-col w-full md:w-[280px] lg:w-[320px] shrink-0
-              border-r border-[#e8eaed] bg-white
-            `}
-          >
-            {/* Sidebar header */}
-            <div className="px-4 py-3 border-b border-[#e8eaed]">
-              <h1 className="hidden md:block text-[15px] font-medium text-[#202124] mb-3">
-                SMS Center
-              </h1>
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9aa0a6]" />
-                <input
-                  type="text"
-                  placeholder="Search conversations…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 text-sm rounded-md border border-[#dadce0] bg-[#f8f9fa] text-[#202124] placeholder:text-[#9aa0a6] focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] focus:bg-white transition-colors"
-                />
+        {/* Search */}
+        <motion.div
+          className="mb-6"
+          variants={fadeUp}
+          custom={1}
+          initial="hidden"
+          animate="show"
+        >
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+            <input
+              type="text"
+              placeholder="Search by number, service, or country..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+            />
+          </div>
+        </motion.div>
+
+        {/* SMS List */}
+        {numbersLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse rounded-lg border border-[#e8eaed] bg-white p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-[#f1f3f4] rounded-xl" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-[#f1f3f4] rounded w-1/3 mb-2" />
+                    <div className="h-3 bg-[#f1f3f4] rounded w-1/2" />
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Conversation list */}
-            <div className="flex-1 overflow-y-auto">
-              {filteredConvs.length === 0 ? (
-                <p className="text-sm text-[#5f6368] text-center py-10">
-                  No conversations found.
-                </p>
-              ) : (
-                filteredConvs.map((conv) => {
-                  const isActive = selected?.id === conv.id;
-                  return (
-                    <button
-                      key={conv.id}
-                      onClick={() => selectConversation(conv)}
-                      className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f1f3f4] transition-colors ${
-                        isActive
-                          ? "bg-[#e8f0fe]"
-                          : "hover:bg-[#f8f9fa]"
-                      }`}
-                    >
-                      {/* Avatar */}
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1a73e8] text-white text-xs font-semibold">
-                        {getInitials(conv.senderName)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                          <p
-                            className={`text-sm truncate ${
-                              isActive
-                                ? "font-semibold text-[#1a73e8]"
-                                : conv.unreadCount > 0
-                                ? "font-semibold text-[#202124]"
-                                : "font-normal text-[#202124]"
-                            }`}
-                          >
-                            {conv.senderName}
-                          </p>
-                          <span className="text-[10px] text-[#5f6368] shrink-0">
-                            {formatDate(conv.lastMessageTime)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#5f6368] mb-0.5">
-                          {conv.phoneNumber}
-                        </p>
-                        <p className="text-xs text-[#5f6368] truncate">
-                          {conv.lastMessage.content}
-                        </p>
-                      </div>
-
-                      {/* Unread badge */}
-                      {conv.unreadCount > 0 && (
-                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[#1a73e8] px-1 text-[10px] font-semibold text-white">
-                          {conv.unreadCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
+            ))}
+          </div>
+        ) : numbersWithSms.length === 0 ? (
+          <motion.div
+            variants={fadeUp}
+            custom={2}
+            initial="hidden"
+            animate="show"
+          >
+            <div className="text-center py-16 rounded-lg border border-[#e8eaed] bg-white">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#f8f9fa] mb-4">
+                <Inbox className="w-7 h-7 text-[#9aa0a6]" />
+              </div>
+              <p className="text-base font-medium text-[#202124] mb-1">
+                {searchQuery ? "No matching results" : "No SMS messages yet"}
+              </p>
+              <p className="text-sm text-[#5f6368] mb-6">
+                {searchQuery
+                  ? "Try a different search term"
+                  : "Purchase a virtual number to start receiving SMS"}
+              </p>
+              {!searchQuery && (
+                <Link
+                  href="/dashboard/numbers"
+                  className="inline-flex items-center gap-2 h-10 px-5 text-sm bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-lg font-medium transition-colors"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Buy a Number
+                </Link>
               )}
             </div>
-
-            {/* Sidebar footer actions */}
-            <div className="flex gap-2 px-4 py-3 border-t border-[#e8eaed]">
-              <button className="flex flex-1 items-center justify-center gap-1.5 h-8 rounded border border-[#dadce0] text-xs font-medium text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
-                <Archive className="w-3.5 h-3.5" />
-                Archive
-              </button>
-              <button className="flex flex-1 items-center justify-center gap-1.5 h-8 rounded border border-[#dadce0] text-xs font-medium text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-                Delete
-              </button>
-            </div>
-          </aside>
-
-          {/* ── Chat panel ────────────────────────────────────────────────── */}
-          <main
-            className={`
-              ${mobileView === "list" ? "hidden" : "flex"} md:flex
-              flex-col flex-1 min-w-0 bg-white
-            `}
-          >
-            {selected ? (
-              <>
-                {/* Chat header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-[#e8eaed] bg-white">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a73e8] text-white text-xs font-semibold shrink-0">
-                      {getInitials(selected.senderName)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#202124]">
-                        {selected.senderName}
-                      </p>
-                      <p className="text-xs text-[#5f6368]">
-                        {selected.phoneNumber}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[#f1f3f4] transition-colors text-[#5f6368]">
-                      <Phone className="w-4 h-4" />
-                    </button>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[#f1f3f4] transition-colors text-[#5f6368]">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-[#f8f9fa]">
-                  <AnimatePresence initial={false}>
-                    {activeMessages.map((msg) => {
-                      const isOutbound = msg.direction === "outbound";
-                      return (
-                        <motion.div
-                          key={msg.id}
-                          variants={msgIn(msg.direction)}
-                          initial="hidden"
-                          animate="show"
-                          className={`flex ${
-                            isOutbound ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          <div
-                            className={`flex flex-col max-w-[72%] ${
-                              isOutbound ? "items-end" : "items-start"
-                            }`}
-                          >
-                            <div
-                              className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
-                                isOutbound
-                                  ? "bg-[#1a73e8] text-white rounded-br-sm"
-                                  : "bg-white text-[#202124] border border-[#e8eaed] rounded-bl-sm"
-                              }`}
-                            >
-                              {msg.content}
-                            </div>
-                            <div
-                              className={`flex items-center gap-1 mt-1 ${
-                                isOutbound ? "flex-row-reverse" : "flex-row"
-                              }`}
-                            >
-                              <span className="text-[10px] text-[#9aa0a6]">
-                                {formatDate(msg.createdAt)}
-                              </span>
-                              {isOutbound && (
-                                <CheckCheck className="w-3 h-3 text-[#1a73e8]" />
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-
-                  {activeMessages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full py-20 text-center">
-                      <MessageSquare className="w-8 h-8 text-[#dadce0] mb-2" />
-                      <p className="text-sm text-[#5f6368]">
-                        No messages yet
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Compose bar */}
-                <div className="px-4 py-3 border-t border-[#e8eaed] bg-white">
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      {...form.register("message")}
-                      placeholder="Type a message…"
-                      autoComplete="off"
-                      className="flex-1 h-9 px-3.5 text-sm rounded-full border border-[#dadce0] bg-[#f8f9fa] text-[#202124] placeholder:text-[#9aa0a6] focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] focus:bg-white transition-colors"
-                    />
-                    <button
-                      type="submit"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1a73e8] hover:bg-[#1765cc] text-white transition-colors disabled:opacity-40"
-                      disabled={form.formState.isSubmitting}
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </form>
-                  {form.formState.errors.message && (
-                    <p className="text-xs text-[#c5221f] mt-1.5 pl-1">
-                      {form.formState.errors.message.message as string}
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              /* Empty state */
+          </motion.div>
+        ) : (
+          <div className="space-y-3">
+            {numbersWithSms.map((number, i) => (
               <motion.div
-                variants={fadeIn}
+                key={number.id}
+                variants={fadeUp}
+                custom={i + 2}
                 initial="hidden"
                 animate="show"
-                className="flex flex-col items-center justify-center flex-1 bg-[#f8f9fa]"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f0fe] mb-4">
-                  <MessageSquare className="w-6 h-6 text-[#1a73e8]" />
-                </div>
-                <p className="text-sm font-medium text-[#202124] mb-1">
-                  No conversation selected
-                </p>
-                <p className="text-xs text-[#5f6368]">
-                  Choose a conversation from the list to start messaging.
-                </p>
+                <Link
+                  href={`/dashboard/numbers/${number.id}`}
+                  className="block rounded-lg border border-[#e8eaed] bg-white hover:shadow-[0_1px_6px_rgba(32,33,36,.18)] transition-all"
+                >
+                  <div className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f8f9fa] shrink-0 text-2xl">
+                        {number.country.flag_emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          {SERVICE_ICONS[number.service?.slug] ? (
+                            <img
+                              src={SERVICE_ICONS[number.service?.slug]}
+                              alt={number.service?.name}
+                              className="h-5 w-5 object-contain mr-1"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                              }}
+                            />
+                          ) : null}
+                          <span className={`text-lg mr-1 ${SERVICE_ICONS[number.service?.slug] ? "hidden" : ""}`}>📱</span>
+                          <p className="text-sm font-medium text-[#202124] truncate">
+                            {number.service.name}
+                          </p>
+                          {number.unread_sms > 0 && (
+                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1a73e8] px-1.5 text-[10px] font-semibold text-white">
+                              {number.unread_sms}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              copyToClipboard(number.number, number.id);
+                            }}
+                            className="text-xs font-mono text-[#5f6368] hover:text-[#1a73e8] transition-colors"
+                          >
+                            {number.number}
+                            {copiedId === number.id ? (
+                              <Check className="inline w-3 h-3 ml-1 text-[#137333]" />
+                            ) : (
+                              <Copy className="inline w-3 h-3 ml-1 opacity-50" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 text-[#9aa0a6]">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span className="text-xs">{number.sms_count || 0}</span>
+                        </div>
+                        {number.last_sms_at ? (
+                          <p className="text-[10px] text-[#9aa0a6] mt-1">
+                            {formatDistanceToNow(new Date(number.last_sms_at), { addSuffix: true })}
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-[#9aa0a6] mt-1">No SMS</p>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#9aa0a6] shrink-0" />
+                    </div>
+                  </div>
+                </Link>
               </motion.div>
-            )}
-          </main>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

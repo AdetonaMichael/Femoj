@@ -217,15 +217,28 @@ class PaymentService {
       });
 
       if (response.success && response.data) {
+        // Backend wraps Paystack response: { success, data: { data: { amount, reference, ... }, verified } }
+        const payload = (response.data as any).data || response.data;
+        const verified = (response.data as any).verified;
+
         console.log("[PaymentService] ✅ Verification SUCCESS:", {
-          reference: response.data.reference,
-          amount: response.data.amount,
-          status: response.data.status,
-          paid_at: response.data.paid_at,
+          reference: payload.reference,
+          amount: payload.amount,
+          status: payload.status,
+          paid_at: payload.paid_at,
+          verified,
         });
+
         return {
           success: true,
-          data: response.data,
+          data: {
+            reference: payload.reference || (response.data as any).reference,
+            amount: payload.amount || (response.data as any).amount,
+            status: payload.status || (response.data as any).status,
+            paid_at: payload.paid_at || (response.data as any).paid_at,
+            credits_added: (response.data as any).credits_added || payload.credits_added,
+            new_balance: (response.data as any).new_balance || payload.new_balance,
+          },
           message: "Payment verified successfully",
         };
       }
