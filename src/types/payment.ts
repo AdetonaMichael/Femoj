@@ -164,6 +164,8 @@ export interface VerifyPaymentResult
     amount: number;
     status: string;
     paid_at: string;
+    credits_added?: number;
+    new_balance?: number;
   }> {}
 
 export interface DirectCheckoutResult

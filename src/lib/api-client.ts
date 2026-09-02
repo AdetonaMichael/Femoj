@@ -5,6 +5,7 @@
 
 import type { ApiResponse, ApiErrorResponse } from "@/types";
 import { getAuthorizationHeader } from "./token";
+import { useAuthStore } from "@/store/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -95,6 +96,20 @@ export async function apiFetch<TData = unknown>(
 
     // Handle non-2xx responses
     if (!response.ok) {
+      // Handle 401 Unauthorized - session expired
+      if (response.status === 401 && requiresAuth) {
+        const { logout } = useAuthStore.getState();
+        logout();
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
+          window.location.href = "/auth/login?expired=1";
+        }
+        return {
+          success: false,
+          message: "Your session has expired. Please login again.",
+          errors: { auth: ["Session expired"] },
+        } as ApiErrorResponse;
+      }
+
       // Handle rate limiting (429) with a friendly message
       if (response.status === 429) {
         return {

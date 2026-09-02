@@ -225,6 +225,7 @@ export const DASHBOARD_NAVIGATION = [
   { label: "Numbers", href: "/dashboard/numbers", icon: "Smartphone" },
   { label: "SMS", href: "/dashboard/sms", icon: "MessageSquare" },
   { label: "Wallet", href: "/dashboard/wallet", icon: "CreditCard" },
+  { label: "Notifications", href: "/dashboard/notifications", icon: "Bell" },
   { label: "Referrals", href: "/dashboard/referrals", icon: "Share2" },
   { label: "Settings", href: "/dashboard/settings", icon: "Settings" },
 ] as const;

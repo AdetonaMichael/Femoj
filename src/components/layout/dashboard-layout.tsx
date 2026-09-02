@@ -18,6 +18,7 @@ import {
   MessageSquare,
   CreditCard,
   Share2,
+  Bell,
   LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
@@ -31,6 +32,7 @@ const DASHBOARD_ICONS: Record<string, LucideIcon> = {
   MessageSquare,
   CreditCard,
   Share2,
+  Bell,
   Settings,
 };
 

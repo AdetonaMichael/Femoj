@@ -1,690 +1,424 @@
 "use client";
 
-import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { motion, AnimatePresence, easeOut } from "framer-motion";
+import { useAuthStore } from "@/store/auth";
+import { NotificationPreferences } from "@/components/notifications";
+import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   User,
-  Lock,
+  Shield,
   Bell,
   Key,
-  Copy,
-  Check,
-  Shield,
-  Sun,
+  Camera,
+  Mail,
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  Save,
+  Loader2,
+  Palette,
   Moon,
+  Sun,
   Monitor,
-  LogOut,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { updateProfileSchema, changePasswordSchema } from "@/schemas";
 import { toast } from "sonner";
-import { useTheme } from "next-themes";
 
-/* ─── Types ───────────────────────────────────────────────────────────────── */
-interface ProfileFormValues {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-}
-
-interface PasswordFormValues {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-type TabId = "profile" | "security" | "notifications" | "api";
-
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: React.ElementType;
-}
-
-interface Session {
-  device: string;
-  ip: string;
-  location: string;
-  current: boolean;
-}
-
-interface ApiKey {
-  name: string;
-  key: string;
-  created: string;
-  env: "live" | "test";
-}
-
-interface NotificationPref {
-  title: string;
-  description: string;
-  enabled: boolean;
-}
-
-/* ─── Static data ─────────────────────────────────────────────────────────── */
-const TABS: Tab[] = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "security", label: "Security", icon: Lock },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "api", label: "API Keys", icon: Key },
-];
-
-const SESSIONS: Session[] = [
-  {
-    device: "Chrome on Windows",
-    ip: "192.168.1.1",
-    location: "New York, USA",
-    current: true,
-  },
-  {
-    device: "Safari on iPhone",
-    ip: "203.0.113.42",
-    location: "San Francisco, USA",
-    current: false,
-  },
-];
-
-const API_KEYS: ApiKey[] = [
-  {
-    name: "Production Key",
-    key: "sk_live_1234567890abcdef",
-    created: "Jan 15, 2024",
-    env: "live",
-  },
-  {
-    name: "Development Key",
-    key: "sk_test_1234567890abcdef",
-    created: "Jan 15, 2024",
-    env: "test",
-  },
-];
-
-const NOTIFICATION_PREFS: NotificationPref[] = [
-  { title: "SMS Alerts", description: "Receive alerts via SMS", enabled: true },
-  {
-    title: "Email Notifications",
-    description: "Receive updates via email",
-    enabled: true,
-  },
-  {
-    title: "Marketing Emails",
-    description: "Receive promotional content",
-    enabled: false,
-  },
-  {
-    title: "Transaction Notifications",
-    description: "Get notified of all transactions",
-    enabled: true,
-  },
-  {
-    title: "Login Alerts",
-    description: "Be notified of new login attempts",
-    enabled: true,
-  },
-];
-
-/* ─── Shared styles ───────────────────────────────────────────────────────── */
-const fieldLabel =
-  "block text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-1.5";
-
-const inputBase =
-  "w-full h-9 px-3 text-sm rounded-md border border-[#dadce0] bg-white text-[#202124] placeholder:text-[#9aa0a6] focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors";
-
-const sectionPanel = "rounded-lg border border-[#e8eaed] bg-white overflow-hidden";
-
-const sectionHeader =
-  "flex items-center justify-between px-5 py-4 border-b border-[#e8eaed]";
-
-const submitBtn =
-  "h-9 px-5 text-sm font-medium rounded-md bg-[#1a73e8] hover:bg-[#1765cc] text-white transition-colors disabled:opacity-50 inline-flex items-center gap-2";
-
-/* ─── Animation ───────────────────────────────────────────────────────────── */
-const panelAnim = {
-  hidden: { opacity: 0, y: 6 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: easeOut } },
-  exit: { opacity: 0, y: -4, transition: { duration: 0.15 } },
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, delay: i * 0.06 },
+  }),
 };
 
-/* ─── Component ───────────────────────────────────────────────────────────── */
+type Tab = "profile" | "security" | "notifications" | "appearance";
+
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
-  const [copied, setCopied] = useState("");
-  const [notifState, setNotifState] = useState<Record<string, boolean>>(
-    Object.fromEntries(NOTIFICATION_PREFS.map((n) => [n.title, n.enabled]))
-  );
+  const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [saving, setSaving] = useState(false);
 
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      firstName: "Demo",
-      lastName: "User",
-      email: "demo@femoj.com",
-      phone: "+1234567890",
-    },
-  });
+  // Profile form
+  const [firstName, setFirstName] = useState(user?.first_name || "");
+  const [lastName, setLastName] = useState(user?.last_name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState(user?.phone_number || "");
 
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
+  // Security form
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const onProfileUpdate = async (_data: ProfileFormValues) => {
-    toast.success("Profile updated");
+  // Appearance
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+
+  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "security", label: "Security", icon: Shield },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "appearance", label: "Appearance", icon: Palette },
+  ];
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    // Simulate API call
+    await new Promise((r) => setTimeout(r, 1000));
+    setSaving(false);
+    toast.success("Profile updated successfully");
   };
 
-  const onPasswordChange = async (_data: PasswordFormValues) => {
-    toast.success("Password changed");
-    passwordForm.reset();
-  };
-
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key).catch(() => null);
-    setCopied(key);
-    setTimeout(() => setCopied(""), 2000);
-  };
-
-  const toggleNotif = (title: string) => {
-    setNotifState((prev) => ({ ...prev, [title]: !prev[title] }));
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    setSaving(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    setSaving(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    toast.success("Password changed successfully");
   };
 
   return (
     <DashboardLayout>
       <div
-        className="min-h-screen bg-white"
+        className="min-h-screen bg-[#f8f9fa]"
         style={{ fontFamily: "'Google Sans', 'Roboto', sans-serif" }}
       >
-        {/* ── Page header ─────────────────────────────────────────────────── */}
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
           className="mb-6"
+          variants={fadeUp}
+          custom={0}
+          initial="hidden"
+          animate="show"
         >
-          <h1 className="text-[22px] font-medium text-[#202124] tracking-tight">
+          <h1 className="text-[22px] font-medium text-[#202124] mb-1">
             Settings
           </h1>
-          <p className="mt-1 text-sm text-[#5f6368]">
-            Manage your account preferences and security.
+          <p className="text-sm text-[#5f6368]">
+            Manage your account preferences
           </p>
         </motion.div>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* ── Sidebar nav ───────────────────────────────────────────────── */}
-          <nav className="md:w-48 shrink-0">
-            <ul className="space-y-0.5">
-              {TABS.map((tab) => {
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <motion.div
+            variants={fadeUp}
+            custom={1}
+            initial="hidden"
+            animate="show"
+          >
+            <div className="rounded-lg border border-[#e8eaed] bg-white p-2 lg:sticky lg:top-6">
+              {tabs.map((tab) => {
                 const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
                 return (
-                  <li key={tab.id}>
-                    <button
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                        isActive
-                          ? "bg-[#e8f0fe] text-[#1a73e8] font-medium"
-                          : "text-[#5f6368] hover:bg-[#f8f9fa] hover:text-[#202124]"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {tab.label}
-                    </button>
-                  </li>
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-[#e8f0fe] text-[#1a73e8]"
+                        : "text-[#5f6368] hover:bg-[#f8f9fa]"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
                 );
               })}
-            </ul>
-          </nav>
+            </div>
+          </motion.div>
 
-          {/* ── Content pane ──────────────────────────────────────────────── */}
-          <div className="flex-1 min-w-0">
-            <AnimatePresence mode="wait">
-              {/* ── Profile ─────────────────────────────────────────────── */}
-              {activeTab === "profile" && (
-                <motion.div
-                  key="profile"
-                  variants={panelAnim}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  className="space-y-4"
-                >
-                  {/* Profile info */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
+          {/* Content */}
+          <div className="lg:col-span-3">
+            {/* ── Profile Tab ──────────────────────────────────────────────── */}
+            {activeTab === "profile" && (
+              <motion.div
+                variants={fadeUp}
+                custom={2}
+                initial="hidden"
+                animate="show"
+              >
+                <div className="rounded-lg border border-[#e8eaed] bg-white">
+                  {/* Avatar */}
+                  <div className="p-6 border-b border-[#e8eaed]">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#e8f0fe] text-[#1a73e8] text-2xl font-semibold">
+                          {user?.first_name?.[0]}
+                          {user?.last_name?.[0]}
+                        </div>
+                        <button className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-[#1a73e8] text-white hover:bg-[#1765cc] transition-colors">
+                          <Camera className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                       <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Profile Information
+                        <p className="text-base font-medium text-[#202124]">
+                          {user?.first_name} {user?.last_name}
                         </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Update your personal details
-                        </p>
+                        <p className="text-sm text-[#5f6368]">{user?.email}</p>
                       </div>
                     </div>
-                    <div className="px-5 py-5">
-                      {/* Avatar row */}
-                      <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[#f1f3f4]">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a73e8] text-white text-lg font-semibold shrink-0">
-                          DU
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[#202124]">
-                            Demo User
-                          </p>
-                          <p className="text-xs text-[#5f6368]">
-                            demo@femoj.com
-                          </p>
-                        </div>
-                      </div>
+                  </div>
 
-                      <form
-                        onSubmit={profileForm.handleSubmit(onProfileUpdate)}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  {/* Form */}
+                  <div className="p-6 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full h-11 px-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full h-11 px-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                        Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={handleSaveProfile}
+                        disabled={saving}
+                        className="h-10 px-6 flex items-center gap-2 bg-[#1a73e8] hover:bg-[#1765cc] disabled:bg-[#9aa0a6] text-white rounded-lg text-sm font-medium transition-colors"
                       >
-                        <div>
-                          <label className={fieldLabel}>First Name</label>
-                          <input
-                            className={inputBase}
-                            placeholder="First name"
-                            {...profileForm.register("firstName")}
-                          />
-                        </div>
-                        <div>
-                          <label className={fieldLabel}>Last Name</label>
-                          <input
-                            className={inputBase}
-                            placeholder="Last name"
-                            {...profileForm.register("lastName")}
-                          />
-                        </div>
-                        <div>
-                          <label className={fieldLabel}>Email Address</label>
-                          <input
-                            type="email"
-                            className={inputBase}
-                            placeholder="Email"
-                            {...profileForm.register("email")}
-                          />
-                        </div>
-                        <div>
-                          <label className={fieldLabel}>Phone Number</label>
-                          <input
-                            type="tel"
-                            className={inputBase}
-                            placeholder="Phone"
-                            {...profileForm.register("phone")}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <button
-                            type="submit"
-                            className={submitBtn}
-                            disabled={profileForm.formState.isSubmitting}
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Save Changes
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* Theme preferences */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Appearance
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Choose your preferred colour scheme
-                        </p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-5">
-                      <div className="grid grid-cols-3 gap-3 max-w-sm">
-                        {(
-                          [
-                            { value: "light", label: "Light", Icon: Sun },
-                            { value: "dark", label: "Dark", Icon: Moon },
-                            { value: "system", label: "System", Icon: Monitor },
-                          ] as { value: string; label: string; Icon: React.ElementType }[]
-                        ).map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() =>
-                              setTheme(opt.value as "light" | "dark" | "system")
-                            }
-                            className={`flex flex-col items-center gap-2 py-4 rounded-lg border text-sm transition-colors ${
-                              theme === opt.value
-                                ? "border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8] font-medium"
-                                : "border-[#e8eaed] text-[#5f6368] hover:bg-[#f8f9fa]"
-                            }`}
-                          >
-                            <opt.Icon className="w-5 h-5" />
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── Security ────────────────────────────────────────────── */}
-              {activeTab === "security" && (
-                <motion.div
-                  key="security"
-                  variants={panelAnim}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  className="space-y-4"
-                >
-                  {/* Change password */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Change Password
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Update your password regularly for security
-                        </p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-5">
-                      <form
-                        onSubmit={passwordForm.handleSubmit(onPasswordChange)}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg"
-                      >
-                        <div className="md:col-span-2">
-                          <label className={fieldLabel}>Current Password</label>
-                          <input
-                            type="password"
-                            className={inputBase}
-                            placeholder="Current password"
-                            {...passwordForm.register("currentPassword")}
-                          />
-                        </div>
-                        <div>
-                          <label className={fieldLabel}>New Password</label>
-                          <input
-                            type="password"
-                            className={inputBase}
-                            placeholder="New password"
-                            {...passwordForm.register("newPassword")}
-                          />
-                          {passwordForm.formState.errors.newPassword && (
-                            <p className="text-xs text-[#c5221f] mt-1">
-                              {
-                                passwordForm.formState.errors.newPassword
-                                  .message as string
-                              }
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <label className={fieldLabel}>Confirm Password</label>
-                          <input
-                            type="password"
-                            className={inputBase}
-                            placeholder="Confirm password"
-                            {...passwordForm.register("confirmPassword")}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <button
-                            type="submit"
-                            className={submitBtn}
-                            disabled={passwordForm.formState.isSubmitting}
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Update Password
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* 2FA */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Two-Factor Authentication
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Add an extra layer of security to your account
-                        </p>
-                      </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#fef7e0] text-[#b06000]">
-                        Disabled
-                      </span>
-                    </div>
-                    <div className="px-5 py-5">
-                      <p className="text-sm text-[#5f6368] mb-4">
-                        Two-factor authentication is not enabled. Enable it to
-                        protect your account with an additional verification step.
-                      </p>
-                      <button className={submitBtn}>
-                        <Shield className="w-3.5 h-3.5" />
-                        Enable 2FA
+                        {saving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        Save Changes
                       </button>
                     </div>
                   </div>
+                </div>
+              </motion.div>
+            )}
 
-                  {/* Active sessions */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Active Sessions
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Manage your active login sessions
-                        </p>
-                      </div>
-                    </div>
-                    <div className="divide-y divide-[#f1f3f4]">
-                      {SESSIONS.map((session, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between px-5 py-4"
+            {/* ── Security Tab ──────────────────────────────────────────────── */}
+            {activeTab === "security" && (
+              <motion.div
+                variants={fadeUp}
+                custom={2}
+                initial="hidden"
+                animate="show"
+              >
+                <div className="rounded-lg border border-[#e8eaed] bg-white p-6">
+                  <h2 className="text-base font-medium text-[#202124] mb-1">
+                    Change Password
+                  </h2>
+                  <p className="text-sm text-[#5f6368] mb-6">
+                    Update your password to keep your account secure
+                  </p>
+
+                  <div className="space-y-4 max-w-md">
+                    <div>
+                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+                        <input
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          className="w-full h-11 pl-10 pr-11 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2"
                         >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-[#202124]">
-                                {session.device}
-                              </p>
-                              {session.current && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#e6f4ea] text-[#137333]">
-                                  Current
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-[#5f6368] mt-0.5">
-                              {session.ip} · {session.location}
-                            </p>
-                          </div>
-                          {!session.current && (
-                            <button className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded border border-[#dadce0] text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
-                              <LogOut className="w-3.5 h-3.5" />
-                              Revoke
-                            </button>
+                          {showCurrentPassword ? (
+                            <EyeOff className="w-4 h-4 text-[#9aa0a6]" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-[#9aa0a6]" />
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── Notifications ────────────────────────────────────────── */}
-              {activeTab === "notifications" && (
-                <motion.div
-                  key="notifications"
-                  variants={panelAnim}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                >
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Notification Preferences
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Control how you receive updates and alerts
-                        </p>
+                        </button>
                       </div>
                     </div>
-                    <div className="divide-y divide-[#f1f3f4]">
-                      {NOTIFICATION_PREFS.map((notif) => (
-                        <div
-                          key={notif.title}
-                          className="flex items-center justify-between px-5 py-4 hover:bg-[#f8f9fa] transition-colors"
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full h-11 pl-10 pr-11 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2"
                         >
-                          <div>
-                            <p className="text-sm font-medium text-[#202124]">
-                              {notif.title}
-                            </p>
-                            <p className="text-xs text-[#5f6368] mt-0.5">
-                              {notif.description}
-                            </p>
-                          </div>
-                          {/* Google-style toggle */}
+                          {showNewPassword ? (
+                            <EyeOff className="w-4 h-4 text-[#9aa0a6]" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-[#9aa0a6]" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                        Confirm New Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6]" />
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-[#e8eaed] rounded-lg focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+                      className="h-10 px-6 flex items-center gap-2 bg-[#1a73e8] hover:bg-[#1765cc] disabled:bg-[#9aa0a6] disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {saving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Key className="w-4 h-4" />
+                      )}
+                      Change Password
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Notifications Tab ──────────────────────────────────────────── */}
+            {activeTab === "notifications" && (
+              <motion.div
+                variants={fadeUp}
+                custom={2}
+                initial="hidden"
+                animate="show"
+              >
+                <NotificationPreferences />
+              </motion.div>
+            )}
+
+            {/* ── Appearance Tab ──────────────────────────────────────────── */}
+            {activeTab === "appearance" && (
+              <motion.div
+                variants={fadeUp}
+                custom={2}
+                initial="hidden"
+                animate="show"
+              >
+                <div className="rounded-lg border border-[#e8eaed] bg-white p-6">
+                  <h2 className="text-base font-medium text-[#202124] mb-1">
+                    Appearance
+                  </h2>
+                  <p className="text-sm text-[#5f6368] mb-6">
+                    Customize the look and feel of the app
+                  </p>
+
+                  <div>
+                    <p className="text-sm font-medium text-[#202124] mb-3">
+                      Theme
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: "light" as const, label: "Light", icon: Sun },
+                        { id: "dark" as const, label: "Dark", icon: Moon },
+                        { id: "system" as const, label: "System", icon: Monitor },
+                      ].map((t) => {
+                        const Icon = t.icon;
+                        return (
                           <button
-                            role="switch"
-                            aria-checked={notifState[notif.title]}
-                            onClick={() => toggleNotif(notif.title)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8] ${
-                              notifState[notif.title]
-                                ? "bg-[#1a73e8]"
-                                : "bg-[#dadce0]"
+                            key={t.id}
+                            onClick={() => setTheme(t.id)}
+                            className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                              theme === t.id
+                                ? "border-[#1a73e8] bg-[#f6fafe]"
+                                : "border-[#e8eaed] hover:border-[#dadce0]"
                             }`}
                           >
-                            <span
-                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transform transition-transform ${
-                                notifState[notif.title]
-                                  ? "translate-x-[18px]"
-                                  : "translate-x-[3px]"
+                            <Icon
+                              className={`w-5 h-5 ${
+                                theme === t.id ? "text-[#1a73e8]" : "text-[#5f6368]"
                               }`}
                             />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── API Keys ─────────────────────────────────────────────── */}
-              {activeTab === "api" && (
-                <motion.div
-                  key="api"
-                  variants={panelAnim}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  className="space-y-4"
-                >
-                  {/* Keys list */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          API Keys
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Manage API keys for integrations
-                        </p>
-                      </div>
-                      <button className={submitBtn}>
-                        <Key className="w-3.5 h-3.5" />
-                        Generate Key
-                      </button>
-                    </div>
-                    <div className="divide-y divide-[#f1f3f4]">
-                      {API_KEYS.map((apiKey) => (
-                        <div key={apiKey.key} className="px-5 py-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium text-[#202124]">
-                                  {apiKey.name}
-                                </p>
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
-                                    apiKey.env === "live"
-                                      ? "bg-[#e6f4ea] text-[#137333]"
-                                      : "bg-[#f1f3f4] text-[#5f6368]"
-                                  }`}
-                                >
-                                  {apiKey.env === "live" ? "Live" : "Test"}
-                                </span>
-                              </div>
-                              <p className="text-xs text-[#5f6368] mt-0.5">
-                                Created {apiKey.created}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 flex items-center h-9 px-3 rounded-md border border-[#dadce0] bg-[#f8f9fa] font-mono text-xs text-[#5f6368] overflow-hidden">
-                              <span className="truncate">
-                                {"•".repeat(16)} {apiKey.key.slice(-8)}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => handleCopyKey(apiKey.key)}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4] transition-colors"
-                              aria-label="Copy key"
+                            <span
+                              className={`text-sm font-medium ${
+                                theme === t.id ? "text-[#1a73e8]" : "text-[#5f6368]"
+                              }`}
                             >
-                              {copied === apiKey.key ? (
-                                <Check className="w-4 h-4 text-[#137333]" />
-                              ) : (
-                                <Copy className="w-4 h-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                              {t.label}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-
-                  {/* Webhooks */}
-                  <div className={sectionPanel}>
-                    <div className={sectionHeader}>
-                      <div>
-                        <p className="text-sm font-medium text-[#202124]">
-                          Webhooks
-                        </p>
-                        <p className="text-xs text-[#5f6368] mt-0.5">
-                          Configure endpoints for real-time events
-                        </p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-5">
-                      <p className="text-sm text-[#5f6368] mb-4">
-                        No webhooks configured. Add an endpoint to receive
-                        real-time event notifications.
-                      </p>
-                      <button className={submitBtn}>
-                        <Key className="w-3.5 h-3.5" />
-                        Add Endpoint
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

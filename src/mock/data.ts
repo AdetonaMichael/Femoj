@@ -195,12 +195,12 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
 
 // Mock Referral Stats
 export const MOCK_REFERRAL_STATS: ReferralStats = {
-  totalReferrals: 0,
-  activeReferrals: 0,
-  totalEarnings: 0,
-  monthlyEarnings: 0,
-  commissionRate: 10,
-  pendingPayout: 0.00,
+  total_referrals: 0,
+  active_referrals: 0,
+  fully_qualified_referrals: 0,
+  total_earnings: 0,
+  pending_rewards: 0,
+  available_balance: 0,
 };
 
 // Mock Dashboard Stats

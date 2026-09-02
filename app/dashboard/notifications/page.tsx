@@ -1,51 +1,91 @@
-import React from "react";
-import { Metadata } from "next";
+"use client";
+
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { NotificationCenter, NotificationPreferences } from "@/components/notifications";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 import { Bell, Settings } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Notifications | Dashboard",
-  description: "Manage your notifications and notification preferences",
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, delay: i * 0.06 },
+  }),
 };
 
+type Tab = "notifications" | "preferences";
+
 export default function NotificationsPage() {
+  const [activeTab, setActiveTab] = useState<Tab>("notifications");
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Bell className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">Notifications</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Manage your notifications and customize your notification preferences
+      <div
+        className="min-h-screen bg-[#f8f9fa]"
+        style={{ fontFamily: "'Google Sans', 'Roboto', sans-serif" }}
+      >
+        {/* Header */}
+        <motion.div
+          className="mb-6"
+          variants={fadeUp}
+          custom={0}
+          initial="hidden"
+          animate="show"
+        >
+          <h1 className="text-[22px] font-medium text-[#202124] mb-1">
+            Notifications
+          </h1>
+          <p className="text-sm text-[#5f6368]">
+            View updates and manage your notification preferences
           </p>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
-        <Tabs defaultValue="notifications" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              <span>Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span>Preferences</span>
-            </TabsTrigger>
-          </TabsList>
+        <motion.div
+          className="mb-6"
+          variants={fadeUp}
+          custom={1}
+          initial="hidden"
+          animate="show"
+        >
+          <div className="flex gap-1 p-1 bg-white rounded-lg border border-[#e8eaed] inline-flex">
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "notifications"
+                  ? "bg-[#e8f0fe] text-[#1a73e8]"
+                  : "text-[#5f6368] hover:bg-[#f8f9fa]"
+              }`}
+            >
+              <Bell className="w-4 h-4" />
+              Notifications
+            </button>
+            <button
+              onClick={() => setActiveTab("preferences")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "preferences"
+                  ? "bg-[#e8f0fe] text-[#1a73e8]"
+                  : "text-[#5f6368] hover:bg-[#f8f9fa]"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Preferences
+            </button>
+          </div>
+        </motion.div>
 
-          <TabsContent value="notifications" className="space-y-4">
-            <NotificationCenter />
-          </TabsContent>
-
-          <TabsContent value="preferences" className="space-y-4">
-            <NotificationPreferences />
-          </TabsContent>
-        </Tabs>
+        {/* Content */}
+        <motion.div
+          variants={fadeUp}
+          custom={2}
+          initial="hidden"
+          animate="show"
+        >
+          {activeTab === "notifications" && <NotificationCenter />}
+          {activeTab === "preferences" && <NotificationPreferences />}
+        </motion.div>
       </div>
     </DashboardLayout>
   );
