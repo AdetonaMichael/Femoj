@@ -18,9 +18,9 @@ import type {
 } from "@/types/payment";
 
 const PAYMENT_ENDPOINTS = {
-  INIT: "/payment/paystack-initiate-payment",
-  VERIFY: "/payment/paystack-verify",
+  FUND_WALLET: "/payment/fund-wallet",
   DIRECT_CHECKOUT: "/payment/direct-checkout",
+  VERIFY: "/payment/paystack-verify",
 } as const;
 
 class PaymentService {
@@ -46,14 +46,12 @@ class PaymentService {
       console.log("[PaymentService] Initiating wallet funding:", { amount });
 
       const response = await apiPost<PaystackPaymentData>(
-        PAYMENT_ENDPOINTS.INIT,
+        PAYMENT_ENDPOINTS.FUND_WALLET,
         {
-          amount: Math.round(amount),
-          purpose: "wallet_funding",
+          amount: amount, // Amount in Naira
           channel: "card",
           metadata: {
             ...metadata,
-            transaction_type: "wallet_funding",
             timestamp: new Date().toISOString(),
           },
         },
@@ -64,7 +62,7 @@ class PaymentService {
         console.log("[PaymentService] Wallet funding initialized successfully");
         return {
           success: true,
-          data: response.data,
+          data: response.data as any,
           message: response.message || "Payment initialized successfully",
         } as InitializePaymentResult;
       }
@@ -79,7 +77,7 @@ class PaymentService {
       return {
         success: false,
         message:
-          error?.response?.data?.message || "Payment initialization failed",
+          error?.response?.data?.message || "Payment initialization failed. Please try again.",
         errors: error?.response?.data?.errors,
       };
     }

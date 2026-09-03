@@ -58,20 +58,21 @@ export function useWallet() {
   });
 
   const initializePurchaseMutation = useMutation({
-    mutationFn: (payload: { bundle_id: number; payment_provider: string }) =>
+    mutationFn: (payload: { bundle_id: number }) =>
       walletService.initializePurchase(payload),
     onSuccess: (res) => {
       if (res.success && res.data) {
-        // Redirect to Paystack
-        if (res.data.authorization_url) {
-          window.location.href = res.data.authorization_url;
-        }
+        toast.success(res.message || "Credits purchased successfully!");
+        queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
+        queryClient.invalidateQueries({ queryKey: ["credits", "balance"] });
+        queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["credits", "transactions"] });
       } else {
-        toast.error(res.message || "Failed to initialize payment");
+        toast.error(res.message || "Failed to purchase credits");
       }
     },
-    onError: () => {
-      toast.error("Failed to initialize payment. Please try again.");
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to purchase credits. Please try again.");
     },
   });
 
@@ -94,10 +95,9 @@ export function useWallet() {
   });
 
   const initializePurchase = useCallback(
-    (bundleId: number, paymentProvider: string) => {
+    (bundleId: number) => {
       initializePurchaseMutation.mutate({
         bundle_id: bundleId,
-        payment_provider: paymentProvider,
       });
     },
     [initializePurchaseMutation]

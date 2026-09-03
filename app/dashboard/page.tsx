@@ -3,6 +3,7 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useWallet } from "@/hooks/useWallet";
 import { useVirtualNumbers } from "@/hooks/useVirtualNumbers";
+import { useCredits } from "@/hooks/useCredits";
 import { motion } from "framer-motion";
 import {
   Smartphone,
@@ -56,6 +57,7 @@ const SERVICE_ICONS: Record<string, string> = {
 export default function DashboardPage() {
   const { balance } = useWallet();
   const { numbers, stats, numbersLoading, services } = useVirtualNumbers();
+  const { creditBalance } = useCredits();
 
   const activeNumbers = numbers?.filter((n) => n.status === "active") || [];
   const recentNumbers = activeNumbers.slice(0, 5);
@@ -79,25 +81,35 @@ export default function DashboardPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
             <div className="relative z-10">
-              <p className="text-white/80 text-sm mb-1">Available Balance</p>
-              <p className="text-3xl md:text-4xl font-semibold mb-4">
-                ₦{Number(balanceMajor).toLocaleString()}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/dashboard/numbers?action=buy"
-                  className="inline-flex items-center gap-2 h-10 px-5 text-sm bg-white text-[#1a73e8] hover:bg-white/90 rounded-lg font-medium transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Buy Number
-                </Link>
-                <Link
-                  href="/dashboard/wallet"
-                  className="inline-flex items-center gap-2 h-10 px-5 text-sm bg-white/20 text-white hover:bg-white/30 rounded-lg font-medium transition-colors backdrop-blur-sm"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Fund Wallet
-                </Link>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-white/80 text-sm mb-1">Available Balance</p>
+                  <p className="text-3xl md:text-4xl font-semibold mb-2">
+                    ₦{Number(balanceMajor).toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-300" />
+                    <span className="text-sm text-white/90">
+                      {creditBalance.toLocaleString()} Credits Available
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/dashboard/numbers?action=buy"
+                    className="inline-flex items-center gap-2 h-10 px-5 text-sm bg-white text-[#1a73e8] hover:bg-white/90 rounded-lg font-medium transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Buy Number
+                  </Link>
+                  <Link
+                    href="/dashboard/wallet"
+                    className="inline-flex items-center gap-2 h-10 px-5 text-sm bg-white/20 text-white hover:bg-white/30 rounded-lg font-medium transition-colors backdrop-blur-sm"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Fund Wallet
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -128,9 +140,9 @@ export default function DashboardPage() {
               href: "/dashboard/wallet",
             },
             {
-              label: "Balance",
-              value: `₦${Number(balanceMajor).toLocaleString()}`,
-              icon: CreditCard,
+              label: "Credits",
+              value: creditBalance.toLocaleString(),
+              icon: Zap,
               color: "bg-[#f3e8fd] text-[#7627bb]",
               href: "/dashboard/wallet",
             },

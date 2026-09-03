@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { NotificationBell } from "@/components/notifications";
+import { RoleSwitcher } from "@/components/role-switcher";
 import Image from "next/image";
 import { logo1 } from "../../../public";
 
@@ -158,6 +159,7 @@ export function DashboardLayout({
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
+            <RoleSwitcher />
             <NotificationBell />
 
             <Link href="/dashboard/settings" className="p-2 hover:bg-muted rounded-lg">
