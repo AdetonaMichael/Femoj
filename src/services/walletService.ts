@@ -59,12 +59,11 @@ export const walletService = {
   },
 
   /**
-   * Initialize credit bundle purchase
+   * Purchase credit bundle (debited from wallet)
    * POST /payment/credit-bundles/purchase
    */
   async initializePurchase(payload: {
     bundle_id: number;
-    payment_provider: string;
   }): Promise<ApiResponse<CreditBundlePurchaseResponse>> {
     return apiPost<CreditBundlePurchaseResponse>(
       "/payment/credit-bundles/purchase",

@@ -3,6 +3,7 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useVirtualNumbers } from "@/hooks/useVirtualNumbers";
 import { useWallet } from "@/hooks/useWallet";
+import { useCredits } from "@/hooks/useCredits";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -99,6 +100,7 @@ export default function NumbersPage() {
   const searchParams = useSearchParams();
   const { services, servicesLoading, useCountries, usePricing, numbers, numbersLoading, orderNumber, isOrdering, stats } = useVirtualNumbers();
   const { balance } = useWallet();
+  const { creditBalance } = useCredits();
 
   const [step, setStep] = useState<Step>("service");
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -112,7 +114,9 @@ export default function NumbersPage() {
   const { data: countries, isLoading: countriesLoading } = useCountries(selectedService?.id || null);
   const { data: pricing, isLoading: pricingLoading } = usePricing(selectedService?.id || null, selectedCountry?.id || null);
 
-  const balanceMajor = balance?.balance ?? 0;
+  const creditPrice = orderType === "activation"
+    ? pricing?.credit_price_activation ?? 0
+    : pricing?.credit_price_rent_30d ?? 0;
 
   // Pre-select from URL params
   useEffect(() => {
@@ -145,12 +149,10 @@ export default function NumbersPage() {
   const handleOrder = async () => {
     if (!selectedService || !selectedCountry) return;
 
-    const price = orderType === "activation"
-      ? pricing?.activation_price
-      : pricing?.rent_price_30d;
+    const price = creditPrice;
 
-    if (price && Number(balanceMajor) < price) {
-      toast.error("Insufficient balance. Please fund your wallet.");
+    if (price && creditBalance < price) {
+      toast.error("Insufficient credits. Please purchase more credits.");
       return;
     }
 
@@ -379,6 +381,9 @@ export default function NumbersPage() {
                         <div className="text-right shrink-0">
                           <p className="text-sm font-semibold text-[#202124]">
                             ₦{Number(country.pivot.activation_price).toLocaleString()}
+                            <span className="text-xs text-[#5f6368] block">
+                              ({country.pivot.credit_price_activation ?? 0} credits)
+                            </span>
                           </p>
                           <p className="text-[10px] text-[#9aa0a6]">activation</p>
                         </div>
@@ -456,6 +461,9 @@ export default function NumbersPage() {
                         20 minutes access. One-time use.
                       </p>
                       <p className="text-lg font-semibold text-[#202124]">
+                        {pricing?.credit_price_activation ?? 0} credits
+                      </p>
+                      <p className="text-xs text-[#5f6368]">
                         ₦{Number(pricing?.activation_price ?? 0).toLocaleString()}
                       </p>
                     </button>
@@ -476,26 +484,28 @@ export default function NumbersPage() {
                         Unlimited SMS for 30 days.
                       </p>
                       <p className="text-lg font-semibold text-[#202124]">
+                        {pricing?.credit_price_rent_30d ?? 0} credits
+                      </p>
+                      <p className="text-xs text-[#5f6368]">
                         ₦{Number(pricing?.rent_price_30d ?? 0).toLocaleString()}
                       </p>
                     </button>
                   </div>
                 </div>
 
-                {/* Balance Check */}
+                {/* Credit Balance Check */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9fa]">
-                  <span className="text-sm text-[#5f6368]">Your Balance</span>
+                  <span className="text-sm text-[#5f6368]">Your Credits</span>
                   <span className="text-sm font-medium text-[#202124]">
-                    ₦{Number(balanceMajor).toLocaleString()}
+                    {creditBalance.toLocaleString()} credits
                   </span>
                 </div>
 
-                {(pricing?.activation_price || pricing?.rent_price_30d) && Number(balanceMajor) <
-                  (orderType === "activation" ? pricing?.activation_price : pricing?.rent_price_30d) && (
+                {creditPrice > 0 && creditBalance < creditPrice && (
                   <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-[#fce8e6]">
                     <AlertCircle className="w-4 h-4 text-[#c5221f] shrink-0" />
                     <p className="text-xs text-[#c5221f]">
-                      Insufficient balance. Please fund your wallet first.
+                      Insufficient credits. Please purchase more credits.
                     </p>
                   </div>
                 )}
@@ -506,10 +516,7 @@ export default function NumbersPage() {
                 disabled={
                   isOrdering ||
                   !pricing ||
-                  Number(balanceMajor) <
-                    (orderType === "activation"
-                      ? pricing?.activation_price
-                      : pricing?.rent_price_30d)
+                  creditBalance < creditPrice
                 }
                 className="w-full h-12 flex items-center justify-center gap-2 bg-[#1a73e8] hover:bg-[#1765cc] disabled:bg-[#9aa0a6] disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors"
               >

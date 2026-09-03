@@ -10,6 +10,7 @@ export interface User {
   email_verified_at: string | null;
   phone_verified_at: string | null;
   balance?: number;
+  credit_balance?: number;
   account_type?: "individual" | "business";
   referral_code?: string;
   referral_count?: number;
@@ -690,6 +691,8 @@ export interface VNCountry {
   pivot?: {
     activation_price: number;
     rent_price_30d: number;
+    credit_price_activation?: number;
+    credit_price_rent_30d?: number;
     is_active: boolean;
   };
 }
@@ -705,6 +708,8 @@ export interface VNService {
 export interface VNPricing {
   activation_price: number;
   rent_price_30d: number;
+  credit_price_activation?: number;
+  credit_price_rent_30d?: number;
   currency: string;
 }
 
@@ -758,10 +763,10 @@ export interface VNOrderResponse {
   service: { id: number; name: string; slug: string };
   country: { id: number; name: string; code: string; flag_emoji: string };
   type: string;
-  price: number;
+  credit_price: number;
   expires_at: string;
   time_remaining: string;
-  new_balance: number;
+  new_credit_balance: number;
   reference: string;
 }
 
@@ -770,4 +775,77 @@ export interface VNStats {
   total_numbers: number;
   total_sms: number;
   total_spent: number;
+}
+
+// Credit Types
+export interface CreditBalance {
+  credit_balance: number;
+}
+
+export interface CreditTransaction {
+  id: number;
+  user_id: number;
+  type: "credit_purchase" | "deduction" | "refund" | "adjustment" | "reversal";
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  reference: string;
+  description: string;
+  service_name: string | null;
+  metadata: Record<string, any> | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Admin Types
+export interface AdminDashboardStats {
+  users: {
+    total: number;
+    active: number;
+    verified: number;
+  };
+  numbers: {
+    total: number;
+    active: number;
+  };
+  orders: {
+    total: number;
+    total_revenue: number;
+  };
+  credits: {
+    total_credit_balance: number;
+    total_purchased: number;
+    total_deducted: number;
+    total_refunded: number;
+  };
+  recent_transactions: any[];
+  recent_credit_transactions: any[];
+}
+
+export interface AdminUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  is_active: boolean;
+  is_verified: boolean;
+  credit_balance: number;
+  created_at: string;
+  roles: { id: number; name: string }[];
+  stats?: {
+    credit_balance: number;
+    wallet_balance: number;
+    total_numbers: number;
+    active_numbers: number;
+    total_orders: number;
+    total_credit_spent: number;
+  };
+}
+
+export interface UserRoles {
+  roles: string[];
+  permissions: string[];
+  is_admin: boolean;
 }

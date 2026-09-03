@@ -96,17 +96,34 @@ export async function apiFetch<TData = unknown>(
 
     // Handle non-2xx responses
     if (!response.ok) {
-      // Handle 401 Unauthorized - session expired
-      if (response.status === 401 && requiresAuth) {
-        const { logout } = useAuthStore.getState();
-        logout();
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
-          window.location.href = "/auth/login?expired=1";
+      // Handle 401 Unauthorized - check if it's an API key issue
+      if (response.status === 401) {
+        const apiMessage = data.message || "";
+        
+        // Check if it's an API key related error
+        if (apiMessage.toLowerCase().includes("api key") || 
+            apiMessage.toLowerCase().includes("secret key") ||
+            apiMessage.toLowerCase().includes("missing key")) {
+          return {
+            success: false,
+            message: "Payment service is temporarily unavailable. Please contact support.",
+            errors: { payment: ["Payment service configuration error. Our team has been notified."] },
+          } as ApiErrorResponse;
         }
+
+        // Regular auth error - session expired
+        if (requiresAuth) {
+          const { logout } = useAuthStore.getState();
+          logout();
+          if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
+            window.location.href = "/auth/login?expired=1";
+          }
+        }
+        
         return {
           success: false,
-          message: "Your session has expired. Please login again.",
-          errors: { auth: ["Session expired"] },
+          message: apiMessage || "Unauthorized. Please login again.",
+          errors: data.errors || { auth: ["Unauthorized"] },
         } as ApiErrorResponse;
       }
 
