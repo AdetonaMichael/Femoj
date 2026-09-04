@@ -120,6 +120,15 @@ export default function RegisterPage() {
     mode: "onChange",
   });
 
+  // Pre-populate referral code from URL ?ref= parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      step3Form.setValue("ref", ref, { shouldValidate: false });
+    }
+  }, [step3Form]);
+
   const step4Form = useForm<RegisterStep4Schema>({
     resolver: zodResolver(registerStep4Schema),
     defaultValues: { otp: "" },
