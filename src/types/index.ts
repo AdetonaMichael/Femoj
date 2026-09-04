@@ -849,3 +849,40 @@ export interface UserRoles {
   permissions: string[];
   is_admin: boolean;
 }
+
+// ── Role & Permission Management Types ──────────────────────
+export interface Role {
+  id: number;
+  name: string;
+  guard_name: string;
+  permissions: Permission[];
+  users_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Permission {
+  id: number;
+  name: string;
+  guard_name: string;
+  roles_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRoleAssignment {
+  user_id: number;
+  roles: { id: number; name: string }[];
+}
+
+export interface UserRoleDetail {
+  user_id: number;
+  name: string;
+  email: string;
+  roles: {
+    id: number;
+    name: string;
+    permissions: string[];
+  }[];
+  direct_permissions: string[];
+}

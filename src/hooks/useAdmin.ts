@@ -176,3 +176,167 @@ export function useAdminCreditBundles() {
     refetch,
   };
 }
+
+// ── Role Management Hooks ─────────────────────────────────
+
+export function useAdminRoles() {
+  const {
+    data: rolesData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "roles"],
+    queryFn: () => adminService.getRoles(),
+    select: (res) => (res.success ? res.data : []),
+  });
+
+  return {
+    roles: rolesData,
+    isLoading,
+    refetch,
+  };
+}
+
+export function useAdminPermissions() {
+  const {
+    data: permissionsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "permissions"],
+    queryFn: () => adminService.getPermissions(),
+    select: (res) => (res.success ? res.data : []),
+  });
+
+  return {
+    permissions: permissionsData,
+    isLoading,
+    refetch,
+  };
+}
+
+export function useAdminCreateRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { name: string; permissions?: string[] }) =>
+      adminService.createRole(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+      toast.success("Role created successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to create role");
+    },
+  });
+}
+
+export function useAdminUpdateRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: { name: string; permissions?: string[] };
+    }) => adminService.updateRole(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+      toast.success("Role updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update role");
+    },
+  });
+}
+
+export function useAdminDeleteRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => adminService.deleteRole(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+      toast.success("Role deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to delete role");
+    },
+  });
+}
+
+export function useAdminCreatePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { name: string }) =>
+      adminService.createPermission(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "permissions"] });
+      toast.success("Permission created successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to create permission");
+    },
+  });
+}
+
+export function useAdminDeletePermission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => adminService.deletePermission(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "permissions"] });
+      toast.success("Permission deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to delete permission");
+    },
+  });
+}
+
+export function useAdminUserRoles() {
+  const queryClient = useQueryClient();
+
+  const assignRole = useMutation({
+    mutationFn: ({
+      userId,
+      roleName,
+    }: {
+      userId: number;
+      roleName: string;
+    }) => adminService.assignRoleToUser(userId, roleName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.success("Role assigned successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to assign role");
+    },
+  });
+
+  const revokeRole = useMutation({
+    mutationFn: ({
+      userId,
+      roleId,
+    }: {
+      userId: number;
+      roleId: number;
+    }) => adminService.revokeRoleFromUser(userId, roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.success("Role revoked successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to revoke role");
+    },
+  });
+
+  return {
+    assignRole,
+    revokeRole,
+  };
+}
