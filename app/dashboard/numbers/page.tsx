@@ -5,7 +5,7 @@ import { useVirtualNumbers } from "@/hooks/useVirtualNumbers";
 import { useWallet } from "@/hooks/useWallet";
 import { useCredits } from "@/hooks/useCredits";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -96,6 +96,20 @@ const CATEGORIES = [
 type Step = "service" | "country" | "confirm" | "success";
 
 export default function NumbersPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    }>
+      <NumbersContent />
+    </Suspense>
+  );
+}
+
+function NumbersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { services, servicesLoading, useCountries, usePricing, numbers, numbersLoading, orderNumber, isOrdering, stats } = useVirtualNumbers();
