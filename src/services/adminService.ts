@@ -187,4 +187,124 @@ export const adminService = {
       requiresAuth: true,
     });
   },
+
+  // ── Role Management ───────────────────────────────────────
+
+  async getRoles(): Promise<ApiResponse<any>> {
+    return apiGet<any>("/admin/roles", { requiresAuth: true });
+  },
+
+  async createRole(payload: {
+    name: string;
+    permissions?: string[];
+  }): Promise<ApiResponse<any>> {
+    return apiPost<any>("/admin/roles", payload, { requiresAuth: true });
+  },
+
+  async updateRole(
+    id: number,
+    payload: { name: string; permissions?: string[] }
+  ): Promise<ApiResponse<any>> {
+    return apiPut<any>(`/admin/roles/${id}`, payload, { requiresAuth: true });
+  },
+
+  async deleteRole(id: number): Promise<ApiResponse<any>> {
+    return apiDelete<any>(`/admin/roles/${id}`, { requiresAuth: true });
+  },
+
+  // ── Permission Management ─────────────────────────────────
+
+  async getPermissions(): Promise<ApiResponse<any>> {
+    return apiGet<any>("/admin/permissions", { requiresAuth: true });
+  },
+
+  async createPermission(payload: {
+    name: string;
+  }): Promise<ApiResponse<any>> {
+    return apiPost<any>("/admin/permissions", payload, { requiresAuth: true });
+  },
+
+  async updatePermission(
+    id: number,
+    payload: { name: string }
+  ): Promise<ApiResponse<any>> {
+    return apiPut<any>(`/admin/permissions/${id}`, payload, {
+      requiresAuth: true,
+    });
+  },
+
+  async deletePermission(id: number): Promise<ApiResponse<any>> {
+    return apiDelete<any>(`/admin/permissions/${id}`, { requiresAuth: true });
+  },
+
+  // ── User Role/Permission Management ───────────────────────
+
+  async getUserRoles(userId: number): Promise<ApiResponse<any>> {
+    return apiGet<any>(`/admin/users/${userId}/roles`, { requiresAuth: true });
+  },
+
+  async assignRoleToUser(
+    userId: number,
+    roleName: string
+  ): Promise<ApiResponse<any>> {
+    return apiPost<any>(
+      `/admin/users/${userId}/roles`,
+      { role: roleName },
+      { requiresAuth: true }
+    );
+  },
+
+  async revokeRoleFromUser(
+    userId: number,
+    roleId: number
+  ): Promise<ApiResponse<any>> {
+    return apiDelete<any>(`/admin/users/${userId}/roles/${roleId}`, {
+      requiresAuth: true,
+    });
+  },
+
+  async assignPermissionToUser(
+    userId: number,
+    permissionName: string
+  ): Promise<ApiResponse<any>> {
+    return apiPost<any>(
+      `/admin/users/${userId}/permissions`,
+      { permission: permissionName },
+      { requiresAuth: true }
+    );
+  },
+
+  async revokePermissionFromUser(
+    userId: number,
+    permissionId: number
+  ): Promise<ApiResponse<any>> {
+    return apiDelete<any>(
+      `/admin/users/${userId}/permissions/${permissionId}`,
+      { requiresAuth: true }
+    );
+  },
+
+  // ── Role-Permission Assignment ────────────────────────────
+
+  async assignPermissionToRole(
+    roleName: string,
+    permissionName: string
+  ): Promise<ApiResponse<any>> {
+    return apiPost<any>(
+      "/admin/roles/assign-permission",
+      { role: roleName, permission: permissionName },
+      { requiresAuth: true }
+    );
+  },
+
+  async revokePermissionFromRole(
+    roleName: string,
+    permissionName: string
+  ): Promise<ApiResponse<any>> {
+    return apiPost<any>(
+      "/admin/roles/revoke-permission",
+      { role: roleName, permission: permissionName },
+      { requiresAuth: true }
+    );
+  },
 };

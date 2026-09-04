@@ -26,6 +26,7 @@ import { Button } from "@/components/ui";
 const ADMIN_NAVIGATION = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Roles", href: "/admin/roles", icon: Shield },
   { label: "Services", href: "/admin/services", icon: Package },
   { label: "Numbers", href: "/admin/numbers", icon: Smartphone },
   { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
