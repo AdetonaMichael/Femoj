@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 /**
  * Password validation helper
@@ -10,21 +11,26 @@ const passwordSchema = z
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
   .regex(/[a-z]/, "Password must contain at least one lowercase letter")
   .regex(/[0-9]/, "Password must contain at least one number")
-  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character (!@#$%^&*)");
+  .regex(
+    /[^A-Za-z0-9]/,
+    "Password must contain at least one special character (!@#$%^&*)",
+  );
 
 /**
  * Nigerian phone number validation
  * Format: +234XXXXXXXXXX or 0XXXXXXXXXX
  */
-const nigerianPhoneSchema = z
+const nigerianPhoneSchema = z.string().refine((phone) => {
+  const pattern = /^(\+234|0)[789]\d{9}$/;
+  return pattern.test(phone.replace(/[\s-]/g, ""));
+}, "Invalid Nigerian phone number. Use +234XXXXXXXXXX or 0XXXXXXXXXX format");
+
+/**
+ * All phone number validation
+ */
+const phoneSchema = z
   .string()
-  .refine(
-    (phone) => {
-      const pattern = /^(\+234|0)[789]\d{9}$/;
-      return pattern.test(phone.replace(/[\s-]/g, ""));
-    },
-    "Invalid Nigerian phone number. Use +234XXXXXXXXXX or 0XXXXXXXXXX format"
-  );
+  .refine((phone) => isValidPhoneNumber(phone), "Invalid phone number");
 
 // ==============
 // Auth Schemas
@@ -58,7 +64,7 @@ export type RegisterStep1Schema = z.infer<typeof registerStep1Schema>;
  */
 export const registerStep2Schema = z.object({
   email: z.string().email("Invalid email address").toLowerCase(),
-  phone_number: nigerianPhoneSchema,
+  phone_number: phoneSchema,
 });
 
 export type RegisterStep2Schema = z.infer<typeof registerStep2Schema>;
@@ -124,7 +130,9 @@ export const verifyPasswordResetOTPSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
 
-export type VerifyPasswordResetOTPSchema = z.infer<typeof verifyPasswordResetOTPSchema>;
+export type VerifyPasswordResetOTPSchema = z.infer<
+  typeof verifyPasswordResetOTPSchema
+>;
 
 /**
  * Reset Password
@@ -147,7 +155,7 @@ export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
  * Send Phone Verification OTP
  */
 export const sendPhoneOTPSchema = z.object({
-  phone_number: nigerianPhoneSchema.optional(),
+  phone_number: phoneSchema.optional(),
   method: z.enum(["sms", "call"]).default("sms"),
 });
 
@@ -208,34 +216,34 @@ export const updateProfileSchema = z.object({
     .string()
     .min(2, "Last name must be at least 2 characters")
     .max(50),
-  phone: z
-    .string()
-    .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
   country: z.string().min(1, "Country is required"),
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(8, "Password must be at least 8 characters"),
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Must contain at least one number"),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Must contain at least one number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const enable2FASchema = z.object({
   method: z.enum(["authenticator", "sms"]),
 });
 
 export const verify2FASchema = z.object({
-  code: z
-    .string()
-    .regex(/^\d{6}$/, "Code must be 6 digits"),
+  code: z.string().regex(/^\d{6}$/, "Code must be 6 digits"),
 });
 
 // Admin Schemas

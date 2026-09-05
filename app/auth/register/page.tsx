@@ -15,7 +15,11 @@ import {
   type RegisterStep3Schema,
   type RegisterStep4Schema,
 } from "@/schemas";
-import { useRegister, useVerifyEmail, useResendEmailOTP } from "@/hooks/useAuth";
+import {
+  useRegister,
+  useVerifyEmail,
+  useResendEmailOTP,
+} from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/auth";
 import {
   Eye,
@@ -32,6 +36,10 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { logo1 } from "../../../public";
+
+// Phone number
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 const inputClass =
   "w-full h-[44px] pl-10 pr-4 rounded-[10px] border-[1.5px] border-[#e5e7eb] bg-[#f8f9fb] text-[13.5px] text-[#6b7280] placeholder:text-[#b0b8c8] outline-none transition-all hover:border-[#c5cad6] focus:border-[#1a3fd4] focus:bg-[#f4f6fd] focus:ring-[3px] focus:ring-[#1a3fd4]/10 focus:text-[#374151]";
@@ -70,7 +78,9 @@ export default function RegisterPage() {
   const [showCpw, setShowCpw] = useState(false);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [otpResendTimer, setOtpResendTimer] = useState(0);
-  const [formData, setFormData] = useState<RegisterStep1Schema & RegisterStep2Schema & Partial<RegisterStep3Schema>>({
+  const [formData, setFormData] = useState<
+    RegisterStep1Schema & RegisterStep2Schema & Partial<RegisterStep3Schema>
+  >({
     first_name: "",
     last_name: "",
     email: "",
@@ -81,14 +91,16 @@ export default function RegisterPage() {
   const { verifyEmail: performVerifyEmail } = useVerifyEmail();
   const { resend: performResendOTP } = useResendEmailOTP();
   const { isLoading, isAuthenticated, registrationEmail } = useAuthStore();
-  
+
   // Track if component mounted - only redirect if already authenticated on mount
   const isInitialMount = useRef(true);
 
   // Redirect if already authenticated (only on initial mount, not after registration)
   useEffect(() => {
     if (isAuthenticated && isInitialMount.current) {
-      console.log("[RegisterPage] Already authenticated, redirecting to dashboard");
+      console.log(
+        "[RegisterPage] Already authenticated, redirecting to dashboard",
+      );
       router.replace("/dashboard");
     }
     isInitialMount.current = false;
@@ -97,20 +109,29 @@ export default function RegisterPage() {
   // Handle OTP resend timer
   useEffect(() => {
     if (otpResendTimer > 0) {
-      const timer = setTimeout(() => setOtpResendTimer(otpResendTimer - 1), 1000);
+      const timer = setTimeout(
+        () => setOtpResendTimer(otpResendTimer - 1),
+        1000,
+      );
       return () => clearTimeout(timer);
     }
   }, [otpResendTimer]);
 
   const step1Form = useForm<RegisterStep1Schema>({
     resolver: zodResolver(registerStep1Schema),
-    defaultValues: { first_name: formData.first_name, last_name: formData.last_name },
+    defaultValues: {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+    },
     mode: "onChange",
   });
 
   const step2Form = useForm<RegisterStep2Schema>({
     resolver: zodResolver(registerStep2Schema),
-    defaultValues: { email: formData.email, phone_number: formData.phone_number },
+    defaultValues: {
+      email: formData.email,
+      phone_number: formData.phone_number,
+    },
     mode: "onChange",
   });
 
@@ -142,11 +163,7 @@ export default function RegisterPage() {
   const pwStrength = calculateStrength(s3.password || "");
 
   const strengthColor =
-    pwStrength <= 2
-      ? "#ef4444"
-      : pwStrength <= 3
-        ? "#f59e0b"
-        : "#22c55e";
+    pwStrength <= 2 ? "#ef4444" : pwStrength <= 3 ? "#f59e0b" : "#22c55e";
   const strengthLabel =
     pwStrength <= 2
       ? "Weak"
@@ -184,7 +201,9 @@ export default function RegisterPage() {
       const result = await performRegister(payload);
 
       if (result.success) {
-        toast.success("Account created! Check your email for verification code.");
+        toast.success(
+          "Account created! Check your email for verification code.",
+        );
         setFormData((prev) => ({ ...prev, ...data }));
         setStep(4);
       } else {
@@ -236,8 +255,17 @@ export default function RegisterPage() {
       >
         {/* Logo & Header */}
         <div className="flex flex-col items-center mb-8">
-          <Image src={logo1} alt="Femoj Logo" width={40} height={40} priority className="h-10 w-auto mb-4" />
-          <h1 className="text-[22px] font-bold text-[#111827] mb-1">Create Account</h1>
+          <Image
+            src={logo1}
+            alt="Femoj Logo"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-auto mb-4"
+          />
+          <h1 className="text-[22px] font-bold text-[#111827] mb-1">
+            Create Account
+          </h1>
           <p className="text-[13px] text-[#6b7280] text-center">
             Join Femoj and manage virtual numbers
           </p>
@@ -384,14 +412,22 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="phone_number" className={labelClass}>
-                  Phone Number (Nigeria)
+                  Phone Number
                 </label>
                 <FieldWrap icon={Phone}>
-                  <input
+                  <PhoneInput
                     id="phone_number"
-                    placeholder="+234 801 234 5678"
+                    international
+                    defaultCountry="US"
+                    value={step2Form.watch("phone_number")}
+                    onChange={(value) => {
+                      step2Form.setValue("phone_number", value || "", {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                    }}
+                    placeholder="Enter phone number"
                     className={inputClass}
-                    {...step2Form.register("phone_number")}
                   />
                 </FieldWrap>
                 {step2Form.formState.errors.phone_number && (
@@ -401,7 +437,7 @@ export default function RegisterPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-[#6b7280] mt-1.5">
-                  Format: +234801234567 or 08012345678
+                  Select your country and enter your phone number
                 </p>
               </div>
 
@@ -478,7 +514,8 @@ export default function RegisterPage() {
                           key={i}
                           className="flex-1 h-[3px] rounded-full transition-all"
                           style={{
-                            background: i < pwStrength ? strengthColor : "#e5e7eb",
+                            background:
+                              i < pwStrength ? strengthColor : "#e5e7eb",
                           }}
                         />
                       ))}
@@ -535,7 +572,8 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="ref" className={labelClass}>
-                  Referral Code <span className="text-[#9ca3af] font-normal">(optional)</span>
+                  Referral Code{" "}
+                  <span className="text-[#9ca3af] font-normal">(optional)</span>
                 </label>
                 <FieldWrap icon={Tag}>
                   <input
@@ -596,7 +634,8 @@ export default function RegisterPage() {
 
               <div className="bg-[#f0f9ff] border border-[#bfdbfe] rounded-lg p-3.5 mb-4">
                 <p className="text-[13px] text-[#0c4a6e]">
-                  We sent a 6-digit code to <strong>{registrationEmail || formData.email}</strong>
+                  We sent a 6-digit code to{" "}
+                  <strong>{registrationEmail || formData.email}</strong>
                 </p>
               </div>
 
@@ -610,7 +649,10 @@ export default function RegisterPage() {
                   inputMode="numeric"
                   placeholder="000000"
                   maxLength={6}
-                  className={inputClass + " text-center tracking-widest font-mono text-lg"}
+                  className={
+                    inputClass +
+                    " text-center tracking-widest font-mono text-lg"
+                  }
                   {...step4Form.register("otp")}
                 />
                 {step4Form.formState.errors.otp && (
